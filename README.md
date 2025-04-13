@@ -1,2 +1,2 @@
 # backend
-University project developed using Springboot
+University project developed using Spring Boot
