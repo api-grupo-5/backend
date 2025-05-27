@@ -3,6 +3,9 @@ package techno_express.backend.manager;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Data
 @Entity(name="users")
 public class User {
@@ -11,9 +14,13 @@ public class User {
     private Long id;
     private String username;
     private String password;
-    private String registered_on;
-    private String last_logged_in;
+    private LocalDateTime registered_on;
+    private LocalDateTime last_logged_in;
 
-    @JoinColumn(name="cart_id")
-    private Cart cart;
+    @OneToMany(mappedBy = "user")
+    private List<Cart> carts; // Historial de carritos
+
+    @OneToOne
+    @JoinColumn(name = "current_cart_id")
+    private Cart actual_cart;
 }
