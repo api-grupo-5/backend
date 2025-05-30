@@ -14,22 +14,23 @@ public class ProductsController {
     private ProductService productService;
 
     @GetMapping
-    public List<Product> getAllProducts(){
+    public List<Product> getAllProducts(@RequestAttribute("request_id") String request_id){
+        System.out.println(request_id + " - inicio de getAllProducts");
         return productService.getAllProducts();
     }
 
     @GetMapping("/{id}")
-    public Product getProductById(@PathVariable Long id){
+    public Product getProductById(@PathVariable Long id, @RequestAttribute("request_id") String request_id){
         return productService.getProductById(id);
     }
 
     @PostMapping
-    public Product createProduct(@RequestBody Product product){
+    public Product createProduct(@RequestBody Product product, @RequestAttribute("request_id") String request_id){
         return productService.saveProduct(product);
     }
 
     @PutMapping
-    Product updateProduct(@RequestBody Product product){
+    Product updateProduct(@RequestBody Product product, @RequestAttribute("request_id") String request_id){
         return productService.updateProduct(product);
     }
 }
