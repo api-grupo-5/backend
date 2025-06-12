@@ -1,15 +1,14 @@
-package techno_express.backend.manager;
+package techno_express.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
-@Entity(name="roles")
-public class Role {
+@Entity(name="ticket_status")
+public class TicketStatus {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-    private String permissions;
+    private String description;
 }

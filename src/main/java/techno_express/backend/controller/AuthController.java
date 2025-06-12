@@ -1,44 +1,45 @@
 package techno_express.backend.controller;
+
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import techno_express.backend.dto.AuthRequest;
-import techno_express.backend.dto.AuthResponse;
-import techno_express.backend.dto.UserDto;
-import techno_express.backend.service.JwtService;
-import techno_express.backend.service.UserService;
+import org.springframework.web.bind.annotation.*;
+import techno_express.backend.dto.AuthRequestDto;
+import techno_express.backend.dto.UserRegisterDto;
+import techno_express.backend.service.AuthService;
+import techno_express.backend.util.ResponseBuilder;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
-    private UserService userService;
-
-    @Autowired
-    private JwtService jwtService;
-
-    @Autowired
-    private AuthenticationManager authManager;
+    private AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody UserDto dto) {
-        userService.register(dto);
-        return ResponseEntity.ok("Usuario registrado");
+    public ResponseEntity<?> register(@RequestAttribute("request_id") String request_id,
+                                      @RequestBody UserRegisterDto userRegisterDto,
+                                      HttpServletRequest request) {
+
+        logger.info(request_id + " - inicio de register");
+        authService.register(request_id, userRegisterDto);
+        logger.info(request_id + " - fin de register");
+        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
-        authManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-        );
+    public ResponseEntity<?> login(@RequestAttribute("request_id") String request_id,
+                                   @RequestBody AuthRequestDto authRequestDto,
+                                   HttpServletRequest request) {
 
-        String token = jwtService.generateToken(request.getUsername());
-        return ResponseEntity.ok(new AuthResponse(token));
+        logger.info(request_id + " - inicio de login");
+        authService.login(request_id, authRequestDto);
+        logger.info(request_id + " - fin de login");
+        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
 }

@@ -1,4 +1,4 @@
-package techno_express.backend.manager;
+package techno_express.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -6,8 +6,8 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@Entity(name="bans")
-public class Ban {
+@Entity(name="token")
+public class Token {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -16,11 +16,6 @@ public class Ban {
     @JoinColumn(name = "user")
     private User user_id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "banned_by")
-    private User banned_by;
-
-    private String reason;
-    private LocalDateTime banned_at;
+    private String public_token;
     private LocalDateTime expires_at;
 }

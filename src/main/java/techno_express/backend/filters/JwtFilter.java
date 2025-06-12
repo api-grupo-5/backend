@@ -1,5 +1,7 @@
-package techno_express.backend.config;
+package techno_express.backend.filters;
 
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -10,29 +12,34 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.util.UUID;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
-import org.slf4j.MDC;
-
+import techno_express.backend.service.AuthService;
 import techno_express.backend.service.JwtService;
+import techno_express.backend.service.UserDetailsServiceImpl;
 import techno_express.backend.service.UserService;
 
 @Component
-public class JwtRequestFilter extends OncePerRequestFilter {
+public class JwtFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtService jwtService;
 
     @Autowired
-    private UserService userService;
+    private UserDetailsServiceImpl userDetailsServiceImpl;
 
-    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+
+        String path = request.getRequestURI();
+
+        if (path.startsWith("/api/auth/")) { //si es algo del login, proceda sin nada tramqui
+            chain.doFilter(request, response);
+            return;
+        }
 
         final String authHeader = request.getHeader("Authorization");
         String username = null;
@@ -44,7 +51,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userService.loadUserByUsername(username);
+            UserDetails userDetails = userDetailsServiceImpl.loadUserByUsername(username);
             if (jwtService.validateToken(jwt, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
@@ -52,13 +59,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             }
         }
 
-        String requestId = request.getHeader("request_id");
-        if (requestId == null) {
-            requestId = UUID.randomUUID().toString();
-        }
-        MDC.put("request_id", requestId);
-
-        chain.doFilter(request, response);
-        MDC.clear();
+        chain.doFilter(request, response); // sin esto no sigue la cadena de ejecucion
     }
 }

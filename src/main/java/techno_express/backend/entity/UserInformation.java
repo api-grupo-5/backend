@@ -1,4 +1,4 @@
-package techno_express.backend.manager;
+package techno_express.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -9,12 +9,14 @@ import java.util.List;
 @Entity(name="usersInformation")
 public class UserInformation {
     @Id
+    private Long id;
+
     @OneToOne
     @MapsId
     private User user;
 
     private String first_name;
-    private String full_name;
+    private String last_name;
     private int personal_id;
     private String email;
     private String phone;

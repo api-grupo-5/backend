@@ -1,4 +1,4 @@
-package techno_express.backend.manager;
+package techno_express.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

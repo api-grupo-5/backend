@@ -1,0 +1,129 @@
+package techno_express.backend.service;
+import jakarta.transaction.Transactional;
+import org.apache.catalina.Authenticator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import techno_express.backend.dto.AuthRequestDto;
+import techno_express.backend.dto.AuthResponseDto;
+import techno_express.backend.entity.User;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import techno_express.backend.dto.UserRegisterDto;
+import techno_express.backend.entity.UserInformation;
+import techno_express.backend.repository.UserRepository;
+import techno_express.backend.repository.UserInformationRepository;
+import techno_express.backend.exception.UserException;
+
+@Service
+public class AuthService {
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+
+    @Autowired
+    private AuthenticationManager authManager;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserInformationRepository userInformationRepository;
+
+    @Autowired
+    private PasswordEncoder encoder;
+
+    @Transactional
+    public void register(String request_id, UserRegisterDto userRegisterDto) {
+        logger.info(request_id + " - registrando usuario " + userRegisterDto.getUsername() + "...");
+
+        try{
+            User checking_user = userRepository.findByUsername(userRegisterDto.getUsername());
+
+            if(checking_user != null){
+                throw new UserException.AlreadyExists();
+            }
+        } catch (DataIntegrityViolationException e) {
+            throw new UserException.InvalidData();
+        } catch (Exception e) {
+            throw e;
+        }
+
+        User user = new User();
+        user.setUsername(userRegisterDto.getUsername());
+        user.setPassword(encoder.encode(userRegisterDto.getPassword()));
+        user.setRegistered_on(LocalDateTime.now());
+        logger.info(request_id + " - guardando usuario en la tabla 'accounts'..." );
+
+        try{
+            userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new UserException.InvalidData();
+        } catch (Exception e) {
+            throw e;
+        }
+
+        logger.info(request_id + " - asignandole los datos de usuario correspondientes...");
+        UserInformation userInformation = new UserInformation();
+        userInformation.setUser(user);
+        userInformation.setFirst_name(userRegisterDto.getFirst_name());
+        userInformation.setLast_name(userRegisterDto.getLast_name());
+        userInformation.setEmail(userRegisterDto.getEmail());
+        userInformation.setPersonal_id(userRegisterDto.getPersonal_id());
+        userInformation.setPhone(userRegisterDto.getPhone());
+        userInformation.setAddress(userRegisterDto.getAddress());
+
+        logger.info(request_id + " - guardando usuario en la tabla 'accounts_information'..." );
+        try{
+            userInformationRepository.save(userInformation);
+        } catch (DataIntegrityViolationException e) {
+            throw new UserException.InvalidData();
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    public void login(String request_id, AuthRequestDto authRequestDto) {
+        String username = authRequestDto.getUsername();
+
+        logger.info(request_id + " - autenticando usuario: " + username + "...");
+        authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        authRequestDto.getUsername(),
+                        authRequestDto.getPassword()
+                )
+        );
+
+        try{
+            User user = userRepository.findByUsername(username);
+
+            if(user == null){
+                throw new UserException.NotFound();
+            }
+
+            logger.info("revisar por que llega hasta aca!!");
+            String token = jwtService.generateToken(user);
+            logger.info(request_id + " - token: " + token + "...");
+
+            AuthResponseDto response = new AuthResponseDto();
+            response.setToken(token);
+        } catch (DataIntegrityViolationException e) {
+            throw new UserException.InvalidData();
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+}

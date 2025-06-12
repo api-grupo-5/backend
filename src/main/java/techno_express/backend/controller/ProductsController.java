@@ -2,7 +2,7 @@ package techno_express.backend.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import techno_express.backend.manager.Product;
+import techno_express.backend.entity.Product;
 import techno_express.backend.service.ProductService;
 
 import java.util.List;

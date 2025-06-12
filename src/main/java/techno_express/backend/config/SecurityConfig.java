@@ -12,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import techno_express.backend.filters.JwtFilter;
 
 
 @Configuration
@@ -19,7 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class SecurityConfig {
 
     @Autowired
-    private JwtRequestFilter jwtFilter;
+    private JwtFilter jwtFilter;
 
     @Bean
     public PasswordEncoder encoder() {
@@ -37,7 +38,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/public/**").permitAll()
+                    .requestMatchers("/api/auth/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(sess -> sess
