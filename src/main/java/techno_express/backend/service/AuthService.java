@@ -112,7 +112,7 @@ public class AuthService {
         }
     }
 
-    public void login(String request_id, AuthRequestDto authRequestDto) {
+    public String login(String request_id, AuthRequestDto authRequestDto) {
         String username = authRequestDto.getUsername();
         User user;
 
@@ -157,5 +157,7 @@ public class AuthService {
         logger.info(request_id + " - asignando token...");
         AuthResponseDto response = new AuthResponseDto();
         response.setToken(token);
+
+        return token;
     }
 }

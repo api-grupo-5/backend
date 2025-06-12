@@ -18,4 +18,17 @@ public class ResponseBuilder {
 
         return new ResponseEntity<>(body, status);
     }
+
+    public static ResponseEntity<Object> buildResponse(HttpStatus status, String code, String message, HttpServletRequest request, String token) {
+        Map<String, Object> body = new HashMap<>();
+        String requestId = request.getHeader("request_id");
+
+        body.put("request_id", requestId);
+        body.put("code", code);
+        body.put("message", message);
+        body.put("token", token);
+
+        return new ResponseEntity<>(body, status);
+    }
+
 }
