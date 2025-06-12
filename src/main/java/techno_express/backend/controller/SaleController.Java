@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.*;
 import techno_express.backend.entity.Sale;
 import techno_express.backend.repository.SaleRepository;
 
-import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -26,10 +25,7 @@ public class SaleController {
 
     // 2) Registrar una nueva venta
     @PostMapping
-    public ResponseEntity<Sale> createSale(@RequestBody Sale sale) {
+    public void createSale(@RequestBody Sale sale) {
         Sale saved = saleRepo.save(sale);
-        return ResponseEntity
-                .created(URI.create("/api/sales/" + saved.getId()))
-                .body(saved);
     }
 }
