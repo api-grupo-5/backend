@@ -38,4 +38,7 @@ public class ProductService {
         }
         return null;
     }
+
+    public void deleteProduct(Long id) {
+    }
 }

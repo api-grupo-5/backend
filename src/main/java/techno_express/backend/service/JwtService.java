@@ -35,7 +35,8 @@ public class JwtService {
     }
 
     public String extractUsername(String token) {
-        Claims claims = Jwts.parserBuilder()
+        // 🔑 Aquí es donde agregamos .build() antes de parseClaimsJws
+        Claims claims = Jwts.parser()
                 .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
