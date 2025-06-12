@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import techno_express.backend.dto.AuthRequestDto;
 import techno_express.backend.dto.AuthResponseDto;
+import techno_express.backend.entity.Role;
 import techno_express.backend.entity.User;
 
 import java.time.LocalDateTime;
@@ -23,6 +25,7 @@ import java.util.List;
 
 import techno_express.backend.dto.UserRegisterDto;
 import techno_express.backend.entity.UserInformation;
+import techno_express.backend.repository.RoleRepository;
 import techno_express.backend.repository.UserRepository;
 import techno_express.backend.repository.UserInformationRepository;
 import techno_express.backend.exception.UserException;
@@ -44,21 +47,27 @@ public class AuthService {
     private UserInformationRepository userInformationRepository;
 
     @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
     private PasswordEncoder encoder;
 
     @Transactional
     public void register(String request_id, UserRegisterDto userRegisterDto) {
-        logger.info(request_id + " - registrando usuario " + userRegisterDto.getUsername() + "...");
+        logger.info(request_id + " - registrando usuario '" + userRegisterDto.getUsername() + "'...");
 
         try{
             User checking_user = userRepository.findByUsername(userRegisterDto.getUsername());
 
             if(checking_user != null){
+                logger.error(request_id + " - el usuario ya existe" );
                 throw new UserException.AlreadyExists();
             }
         } catch (DataIntegrityViolationException e) {
+            logger.error(request_id + " - error en los datos del usuario");
             throw new UserException.InvalidData();
         } catch (Exception e) {
+            logger.error(request_id + " - error desconocido durante el registro: " + e.getMessage());
             throw e;
         }
 
@@ -66,13 +75,18 @@ public class AuthService {
         user.setUsername(userRegisterDto.getUsername());
         user.setPassword(encoder.encode(userRegisterDto.getPassword()));
         user.setRegistered_on(LocalDateTime.now());
+
+        Role user_role = roleRepository.findById(1L).orElseThrow(() -> new RuntimeException("Rol por defecto no encontrado"));
+        user.setRole(user_role);
         logger.info(request_id + " - guardando usuario en la tabla 'accounts'..." );
 
         try{
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
+            logger.error(request_id + " - error en los datos del usuario");
             throw new UserException.InvalidData();
         } catch (Exception e) {
+            logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts': " + e.getMessage());
             throw e;
         }
 
@@ -90,39 +104,58 @@ public class AuthService {
         try{
             userInformationRepository.save(userInformation);
         } catch (DataIntegrityViolationException e) {
+            logger.error(request_id + " - error en los datos del usuario");
             throw new UserException.InvalidData();
         } catch (Exception e) {
+            logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts_information': " + e.getMessage());
             throw e;
         }
     }
 
     public void login(String request_id, AuthRequestDto authRequestDto) {
         String username = authRequestDto.getUsername();
-
-        logger.info(request_id + " - autenticando usuario: " + username + "...");
-        authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        authRequestDto.getUsername(),
-                        authRequestDto.getPassword()
-                )
-        );
+        User user;
 
         try{
-            User user = userRepository.findByUsername(username);
+            logger.info(request_id + " - buscando usuario '" + username + "' en la base de datos...");
+            user = userRepository.findByUsername(username);
 
             if(user == null){
+                logger.error(request_id + " - el usuario no existe");
                 throw new UserException.NotFound();
             }
 
-            String token = jwtService.generateToken(user);
-            logger.info(request_id + " - token: " + token);
-
-            AuthResponseDto response = new AuthResponseDto();
-            response.setToken(token);
         } catch (DataIntegrityViolationException e) {
+            logger.error(request_id + " - los datos recibidos estan corrompidos: " + e.getMessage());
             throw new UserException.InvalidData();
         } catch (Exception e) {
+            logger.error(request_id + " - error desconocido durante la obtencion: " + e.getMessage());
             throw e;
         }
+
+        logger.info(request_id + " - validando credenciales del usuario con las recibidas...");
+        try {
+            authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            username,
+                            authRequestDto.getPassword()
+                    )
+            );
+        } catch (BadCredentialsException e) {
+            logger.error(request_id + " - credenciales inválidas");
+            throw new UserException.InvalidData();
+
+        } catch(Exception e){
+            logger.error(request_id + " - error desconocido durante la validacion: " + e.getMessage());
+            throw new UserException.InvalidData(); // o un error genérico si querés ocultar detalles
+        }
+
+        logger.info(request_id + " - generando token para el usuario...");
+        String token = jwtService.generateToken(user);
+        logger.info(request_id + " - token: " + token);
+
+        logger.info(request_id + " - asignando token...");
+        AuthResponseDto response = new AuthResponseDto();
+        response.setToken(token);
     }
 }
