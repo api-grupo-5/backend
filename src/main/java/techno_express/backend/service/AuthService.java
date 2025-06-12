@@ -114,9 +114,8 @@ public class AuthService {
                 throw new UserException.NotFound();
             }
 
-            logger.info("revisar por que llega hasta aca!!");
             String token = jwtService.generateToken(user);
-            logger.info(request_id + " - token: " + token + "...");
+            logger.info(request_id + " - token: " + token);
 
             AuthResponseDto response = new AuthResponseDto();
             response.setToken(token);

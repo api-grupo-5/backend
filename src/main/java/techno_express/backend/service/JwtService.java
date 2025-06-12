@@ -2,44 +2,43 @@ package techno_express.backend.service;
 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.Claims;
 import techno_express.backend.entity.User;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 @Service
 public class JwtService {
 
-    private final String SECRET = "secreto-clave";
+    private final String SECRET = "tu_clave_muy_larga_y_segura_de_32_bytes_minimo_12345";
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
 
     public String generateToken(User user) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("role", user.getRole().getName());
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + 3600 * 1000); // 1 hora después
+
         return Jwts.builder()
-                .setClaims(claims)
+                .claim("role", user.getRole().getName())
                 .setSubject(user.getUsername())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
-                .signWith(SignatureAlgorithm.HS256, getSigningKey())
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
     public String extractUsername(String token) {
-        Claims claims = Jwts.parserBuilder()
+        JwtParser parser = Jwts.parser()
                 .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .build();
+
+        Claims claims = parser.parseClaimsJws(token).getBody();
 
         return claims.getSubject();
     }
