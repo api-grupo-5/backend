@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-@Entity(name="usersInformation")
+@Entity(name="users_information")
 public class UserInformation {
     @Id
     private Long id;

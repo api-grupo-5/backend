@@ -16,6 +16,6 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(requestIdInterceptor)
                 .addPathPatterns("/**") // detecta todas las rutas
-                .excludePathPatterns("/error"); // pero excluime esta
+                .excludePathPatterns("/error", "/images/**"); // excluye error y recursos estáticos
     }
 }

@@ -1,7 +1,5 @@
 package techno_express.backend.filters;
 
-import org.springframework.context.annotation.Lazy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -17,10 +15,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
-import techno_express.backend.service.AuthService;
 import techno_express.backend.service.JwtService;
 import techno_express.backend.service.UserDetailsServiceImpl;
-import techno_express.backend.service.UserService;
+
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {

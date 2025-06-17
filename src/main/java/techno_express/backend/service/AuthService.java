@@ -1,30 +1,25 @@
 package techno_express.backend.service;
 import jakarta.transaction.Transactional;
-import org.apache.catalina.Authenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import techno_express.backend.dto.AuthRequestDto;
 import techno_express.backend.dto.AuthResponseDto;
 import techno_express.backend.entity.User;
+import techno_express.backend.entity.Role;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 import techno_express.backend.dto.UserRegisterDto;
 import techno_express.backend.entity.UserInformation;
 import techno_express.backend.repository.UserRepository;
 import techno_express.backend.repository.UserInformationRepository;
+import techno_express.backend.repository.RoleRepository;
 import techno_express.backend.exception.UserException;
 
 @Service
@@ -44,6 +39,9 @@ public class AuthService {
     private UserInformationRepository userInformationRepository;
 
     @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
     private PasswordEncoder encoder;
 
     @Transactional
@@ -54,11 +52,40 @@ public class AuthService {
             User checking_user = userRepository.findByUsername(userRegisterDto.getUsername());
 
             if(checking_user != null){
+                logger.error(request_id + " - Usuario ya existe: " + userRegisterDto.getUsername());
                 throw new UserException.AlreadyExists();
             }
         } catch (DataIntegrityViolationException e) {
+            logger.error(request_id + " - Error de integridad de datos: ", e);
             throw new UserException.InvalidData();
         } catch (Exception e) {
+            logger.error(request_id + " - Error inesperado al verificar usuario: ", e);
+            throw e;
+        }
+
+        // Get or create role
+        Role userRole;
+        try {
+            if (userRegisterDto.getRole() != null && !userRegisterDto.getRole().isEmpty()) {
+                logger.info(request_id + " - Buscando rol especificado: " + userRegisterDto.getRole());
+                userRole = roleRepository.findByName(userRegisterDto.getRole());
+                if (userRole == null) {
+                    logger.error(request_id + " - Rol no encontrado: " + userRegisterDto.getRole());
+                    throw new UserException.InvalidData();
+                }
+            } else {
+                logger.info(request_id + " - Usando rol por defecto: USER");
+                userRole = roleRepository.findByName("USER");
+                if (userRole == null) {
+                    logger.info(request_id + " - Creando rol por defecto: USER");
+                    userRole = new Role();
+                    userRole.setName("USER");
+                    userRole.setPermissions("READ");
+                    userRole = roleRepository.save(userRole);
+                }
+            }
+        } catch (Exception e) {
+            logger.error(request_id + " - Error al manejar roles: ", e);
             throw e;
         }
 
@@ -66,13 +93,16 @@ public class AuthService {
         user.setUsername(userRegisterDto.getUsername());
         user.setPassword(encoder.encode(userRegisterDto.getPassword()));
         user.setRegistered_on(LocalDateTime.now());
+        user.setRole(userRole);
         logger.info(request_id + " - guardando usuario en la tabla 'accounts'..." );
 
         try{
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
+            logger.error(request_id + " - Error de integridad al guardar usuario: ", e);
             throw new UserException.InvalidData();
         } catch (Exception e) {
+            logger.error(request_id + " - Error inesperado al guardar usuario: ", e);
             throw e;
         }
 
@@ -90,13 +120,15 @@ public class AuthService {
         try{
             userInformationRepository.save(userInformation);
         } catch (DataIntegrityViolationException e) {
+            logger.error(request_id + " - Error de integridad al guardar información del usuario: ", e);
             throw new UserException.InvalidData();
         } catch (Exception e) {
+            logger.error(request_id + " - Error inesperado al guardar información del usuario: ", e);
             throw e;
         }
     }
 
-    public void login(String request_id, AuthRequestDto authRequestDto) {
+    public AuthResponseDto login(String request_id, AuthRequestDto authRequestDto) {
         String username = authRequestDto.getUsername();
 
         logger.info(request_id + " - autenticando usuario: " + username + "...");
@@ -119,6 +151,7 @@ public class AuthService {
 
             AuthResponseDto response = new AuthResponseDto();
             response.setToken(token);
+            return response;
         } catch (DataIntegrityViolationException e) {
             throw new UserException.InvalidData();
         } catch (Exception e) {

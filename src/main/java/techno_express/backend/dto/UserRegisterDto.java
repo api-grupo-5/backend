@@ -12,4 +12,5 @@ public class UserRegisterDto {
     private String phone;
     private String address;
     private int personal_id;
+    private String role;
 }
