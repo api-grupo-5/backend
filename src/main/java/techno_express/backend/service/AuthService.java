@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -50,6 +52,9 @@ public class AuthService {
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private JavaMailSender mailSender; 
 
     @Autowired
     private PasswordEncoder encoder;
@@ -164,20 +169,37 @@ public class AuthService {
     }
 
     public void sendRecoveryToken(String email) {
+        logger.info("Iniciando envío de token de recuperación para: {}", email);
+
         Optional<UserInformation> infoOpt = userInformationRepository.findByEmail(email);
         if (infoOpt.isEmpty()) {
+            logger.error("Email no registrado: {}", email);
             throw new RuntimeException("Email no registrado");
         }
 
         User user = infoOpt.get().getUser();
-
         String token = UUID.randomUUID().toString();
         user.setResetToken(token);
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
         userRepository.save(user);
 
-        // Simulo envio de mail por ahora
-        System.out.println("🟢 Token de recuperación para " + email + ": " + token);
+        logger.info("Token de recuperación generado: {}", token);
+
+        String resetLink = "http://localhost:3000/reset-password?token=" + token;
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("noreply@technoexpress.com");
+        message.setTo(email);
+        message.setSubject("Recuperación de contraseña");
+        message.setText("Hola!\n\nPara restablecer tu contraseña, hacé clic en el siguiente enlace:\n"
+                + resetLink + "\n\nEste enlace expirará en 30 minutos.\n\nSaludos,\nEl equipo de TechnoExpress");
+
+        try {
+            logger.info("Enviando email a {}", email);
+            mailSender.send(message);
+            logger.info("Email enviado correctamente.");
+        } catch (Exception e) {
+            logger.error("Error al enviar el email: {}", e.getMessage());
+        }
     }
 
     public void resetPassword(String token, String newPassword) {
