@@ -41,6 +41,7 @@ public class AuthController {
                                    @RequestBody AuthRequestDto authRequestDto,
                                    HttpServletRequest request) {
 
+        logger.info("Login request received with request_id: " + request_id);
         logger.info(request_id + " - inicio de login");
         AuthResponseDto response = authService.login(request_id, authRequestDto);
         logger.info(request_id + " - fin de login");

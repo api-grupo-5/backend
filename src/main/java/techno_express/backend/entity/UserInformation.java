@@ -15,10 +15,10 @@ public class UserInformation {
     @MapsId
     private User user;
 
+    private String username;
     private String first_name;
     private String last_name;
     private int personal_id;
-    private String email;
     private String phone;
     private String address;
 

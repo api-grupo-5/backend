@@ -33,6 +33,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
+        // Allow OPTIONS requests (CORS preflight) to pass through
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         if (path.startsWith("/api/auth/")) { //si es algo del login, proceda sin nada tramqui
             chain.doFilter(request, response);
             return;

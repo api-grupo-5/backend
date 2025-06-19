@@ -49,10 +49,10 @@ public class AuthService {
         logger.info(request_id + " - registrando usuario " + userRegisterDto.getUsername() + "...");
 
         try{
-            User checking_user = userRepository.findByUsername(userRegisterDto.getUsername());
+            User checking_user = userRepository.findByEmail(userRegisterDto.getEmail());
 
             if(checking_user != null){
-                logger.error(request_id + " - Usuario ya existe: " + userRegisterDto.getUsername());
+                logger.error(request_id + " - Usuario ya existe: " + userRegisterDto.getEmail());
                 throw new UserException.AlreadyExists();
             }
         } catch (DataIntegrityViolationException e) {
@@ -90,8 +90,9 @@ public class AuthService {
         }
 
         User user = new User();
-        user.setUsername(userRegisterDto.getUsername());
-        user.setPassword(encoder.encode(userRegisterDto.getPassword()));
+        
+        user.setPassword(encoder.encode(userRegisterDto.getPassword()));        
+        user.setEmail(userRegisterDto.getEmail());
         user.setRegistered_on(LocalDateTime.now());
         user.setRole(userRole);
         logger.info(request_id + " - guardando usuario en la tabla 'accounts'..." );
@@ -109,9 +110,9 @@ public class AuthService {
         logger.info(request_id + " - asignandole los datos de usuario correspondientes...");
         UserInformation userInformation = new UserInformation();
         userInformation.setUser(user);
+        userInformation.setUsername(userRegisterDto.getUsername());
         userInformation.setFirst_name(userRegisterDto.getFirst_name());
         userInformation.setLast_name(userRegisterDto.getLast_name());
-        userInformation.setEmail(userRegisterDto.getEmail());
         userInformation.setPersonal_id(userRegisterDto.getPersonal_id());
         userInformation.setPhone(userRegisterDto.getPhone());
         userInformation.setAddress(userRegisterDto.getAddress());
@@ -129,18 +130,21 @@ public class AuthService {
     }
 
     public AuthResponseDto login(String request_id, AuthRequestDto authRequestDto) {
-        String username = authRequestDto.getUsername();
+        String email = authRequestDto.getEmail();
 
-        logger.info(request_id + " - autenticando usuario: " + username + "...");
+        logger.info(request_id + " - autenticando usuario: " + email + "...");
+        logger.info(request_id + " - email recibido: " + authRequestDto.getEmail());
+        logger.info(request_id + " - password recibido: " + (authRequestDto.getPassword() != null ? "***" : "NULL"));
+        
         authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        authRequestDto.getUsername(),
+                        authRequestDto.getEmail(),
                         authRequestDto.getPassword()
                 )
         );
 
         try{
-            User user = userRepository.findByUsername(username);
+            User user = userRepository.findByEmail(email);
 
             if(user == null){
                 throw new UserException.NotFound();
