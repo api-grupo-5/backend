@@ -22,6 +22,8 @@ import techno_express.backend.entity.User;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import techno_express.backend.dto.UserRegisterDto;
 import techno_express.backend.entity.UserInformation;
@@ -160,4 +162,38 @@ public class AuthService {
 
         return token;
     }
+
+    public void sendRecoveryToken(String email) {
+        Optional<UserInformation> infoOpt = userInformationRepository.findByEmail(email);
+        if (infoOpt.isEmpty()) {
+            throw new RuntimeException("Email no registrado");
+        }
+
+        User user = infoOpt.get().getUser();
+
+        String token = UUID.randomUUID().toString();
+        user.setResetToken(token);
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
+        userRepository.save(user);
+
+        // Simulo envio de mail por ahora
+        System.out.println("🟢 Token de recuperación para " + email + ": " + token);
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByResetToken(token)
+            .orElseThrow(() -> new RuntimeException("Token inválido"));
+
+        if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Token expirado");
+        }
+
+        String hashed = encoder.encode(newPassword);
+        user.setPassword(hashed);
+
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+        userRepository.save(user);
+    }
+
 }
