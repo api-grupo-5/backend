@@ -38,8 +38,8 @@ public class AuthController {
                                    HttpServletRequest request) {
 
         logger.info(request_id + " - inicio de login");
-        authService.login(request_id, authRequestDto);
+        String token = authService.login(request_id, authRequestDto);
         logger.info(request_id + " - fin de login");
-        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
+        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, token);
     }
 }
