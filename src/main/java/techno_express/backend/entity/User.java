@@ -18,8 +18,6 @@ public class User {
     private String password;
     private LocalDateTime registered_on;
     private LocalDateTime last_logged_in;
-    private String resetToken;
-    private LocalDateTime resetTokenExpiry;
 
     @ManyToOne
     @JoinColumn(name="role_id")

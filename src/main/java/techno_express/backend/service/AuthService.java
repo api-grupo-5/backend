@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import techno_express.backend.dto.AuthRequestDto;
 import techno_express.backend.dto.AuthResponseDto;
+import techno_express.backend.entity.OtpToken;
 import techno_express.backend.entity.Role;
 import techno_express.backend.entity.User;
 
@@ -29,6 +30,7 @@ import java.util.UUID;
 
 import techno_express.backend.dto.UserRegisterDto;
 import techno_express.backend.entity.UserInformation;
+import techno_express.backend.repository.OtpTokenRepository;
 import techno_express.backend.repository.RoleRepository;
 import techno_express.backend.repository.UserRepository;
 import techno_express.backend.repository.UserInformationRepository;
@@ -46,6 +48,10 @@ public class AuthService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private OtpTokenRepository otpTokenRepository;
+
 
     @Autowired
     private UserInformationRepository userInformationRepository;
@@ -177,11 +183,19 @@ public class AuthService {
             throw new RuntimeException("Email no registrado");
         }
 
-        User user = infoOpt.get().getUser();
+        
+        UserInformation info = infoOpt.get();
+        User user = info.getUser();
+        String username = user.getUsername();
         String token = UUID.randomUUID().toString();
-        user.setResetToken(token);
-        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
-        userRepository.save(user);
+        LocalDateTime expiration = LocalDateTime.now().plusMinutes(30);
+
+        OtpToken otp = new OtpToken();
+        otp.setToken(token);
+        otp.setExpiration(expiration);
+        otp.setUser_id(user);
+        otp.setUsername(username);
+        otpTokenRepository.save(otp);
 
         logger.info("Token de recuperación generado: {}", token);
 
@@ -203,19 +217,19 @@ public class AuthService {
     }
 
     public void resetPassword(String token, String newPassword) {
-        User user = userRepository.findByResetToken(token)
-            .orElseThrow(() -> new RuntimeException("Token inválido"));
+        OtpToken otp = otpTokenRepository.findByToken(token)
+                .orElseThrow(() -> new RuntimeException("Token inválido"));
 
-        if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+        if (otp.getExpiration().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Token expirado");
         }
 
-        String hashed = encoder.encode(newPassword);
-        user.setPassword(hashed);
-
-        user.setResetToken(null);
-        user.setResetTokenExpiry(null);
+        User user = otp.getUser_id();
+        user.setPassword(encoder.encode(newPassword));
         userRepository.save(user);
+
+        otpTokenRepository.delete(otp);
     }
+
 
 }
