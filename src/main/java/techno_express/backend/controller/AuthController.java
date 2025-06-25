@@ -42,4 +42,18 @@ public class AuthController {
         logger.info(request_id + " - fin de login");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, token);
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestAttribute("request_id") String request_id, @RequestParam String email) {
+        authService.sendRecoveryToken(email);
+        return ResponseEntity.ok("Se generó un token de recuperación (revisá logs para verlo)");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @RequestParam String token,
+            @RequestParam String newPassword) {
+        authService.resetPassword(token, newPassword);
+        return ResponseEntity.ok("Contraseña actualizada correctamente");
+    }
 }

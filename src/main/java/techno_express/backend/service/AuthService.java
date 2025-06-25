@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,15 +18,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import techno_express.backend.dto.AuthRequestDto;
 import techno_express.backend.dto.AuthResponseDto;
+import techno_express.backend.entity.OtpToken;
 import techno_express.backend.entity.Role;
 import techno_express.backend.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import techno_express.backend.dto.UserRegisterDto;
 import techno_express.backend.entity.UserInformation;
+import techno_express.backend.repository.OtpTokenRepository;
 import techno_express.backend.repository.RoleRepository;
 import techno_express.backend.repository.UserRepository;
 import techno_express.backend.repository.UserInformationRepository;
@@ -44,10 +50,17 @@ public class AuthService {
     private UserRepository userRepository;
 
     @Autowired
+    private OtpTokenRepository otpTokenRepository;
+
+
+    @Autowired
     private UserInformationRepository userInformationRepository;
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private JavaMailSender mailSender; 
 
     @Autowired
     private PasswordEncoder encoder;
@@ -160,4 +173,63 @@ public class AuthService {
 
         return token;
     }
+
+    public void sendRecoveryToken(String email) {
+        logger.info("Iniciando envío de token de recuperación para: {}", email);
+
+        Optional<UserInformation> infoOpt = userInformationRepository.findByEmail(email);
+        if (infoOpt.isEmpty()) {
+            logger.error("Email no registrado: {}", email);
+            throw new RuntimeException("Email no registrado");
+        }
+
+        
+        UserInformation info = infoOpt.get();
+        User user = info.getUser();
+        String username = user.getUsername();
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiration = LocalDateTime.now().plusMinutes(30);
+
+        OtpToken otp = new OtpToken();
+        otp.setToken(token);
+        otp.setExpiration(expiration);
+        otp.setUser_id(user);
+        otp.setUsername(username);
+        otpTokenRepository.save(otp);
+
+        logger.info("Token de recuperación generado: {}", token);
+
+        String resetLink = "http://localhost:3000/reset-password?token=" + token;
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("noreply@technoexpress.com");
+        message.setTo(email);
+        message.setSubject("Recuperación de contraseña");
+        message.setText("Hola!\n\nPara restablecer tu contraseña, hacé clic en el siguiente enlace:\n"
+                + resetLink + "\n\nEste enlace expirará en 30 minutos.\n\nSaludos,\nEl equipo de TechnoExpress");
+
+        try {
+            logger.info("Enviando email a {}", email);
+            mailSender.send(message);
+            logger.info("Email enviado correctamente.");
+        } catch (Exception e) {
+            logger.error("Error al enviar el email: {}", e.getMessage());
+        }
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        OtpToken otp = otpTokenRepository.findByToken(token)
+                .orElseThrow(() -> new RuntimeException("Token inválido"));
+
+        if (otp.getExpiration().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Token expirado");
+        }
+
+        User user = otp.getUser_id();
+        user.setPassword(encoder.encode(newPassword));
+        userRepository.save(user);
+
+        otpTokenRepository.delete(otp);
+    }
+
+
 }
