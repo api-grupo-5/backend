@@ -70,7 +70,13 @@ public class JwtFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+            } else {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido o expirado");
+                return;
             }
+        } else if (username == null) {
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Falta el token de autenticación");
+            return;
         }
 
         chain.doFilter(request, response); // sin esto no sigue la cadena de ejecucion
