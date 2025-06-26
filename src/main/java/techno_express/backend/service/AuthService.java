@@ -4,19 +4,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import techno_express.backend.dto.AuthRequestDto;
 import techno_express.backend.dto.AuthResponseDto;
+import techno_express.backend.entity.OtpToken;
+import techno_express.backend.entity.Role;
 import techno_express.backend.entity.User;
 import techno_express.backend.entity.Role;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import techno_express.backend.dto.UserRegisterDto;
 import techno_express.backend.entity.UserInformation;
+import techno_express.backend.repository.OtpTokenRepository;
+import techno_express.backend.repository.RoleRepository;
 import techno_express.backend.repository.UserRepository;
 import techno_express.backend.repository.UserInformationRepository;
 import techno_express.backend.repository.RoleRepository;
@@ -36,33 +47,40 @@ public class AuthService {
     private UserRepository userRepository;
 
     @Autowired
+    private OtpTokenRepository otpTokenRepository;
+
+
+    @Autowired
     private UserInformationRepository userInformationRepository;
 
     @Autowired
     private RoleRepository roleRepository;
 
     @Autowired
+    private JavaMailSender mailSender; 
+
+    @Autowired
     private PasswordEncoder encoder;
 
     @Transactional
     public void register(String request_id, UserRegisterDto userRegisterDto) {
-        logger.info(request_id + " - registrando usuario " + userRegisterDto.getUsername() + "...");
+        logger.info(request_id + " - registrando usuario '" + userRegisterDto.getUsername() + "'...");
 
         try{
             User checking_user = userRepository.findByEmail(userRegisterDto.getEmail());
 
             if(checking_user != null){
-                logger.error(request_id + " - Usuario ya existe: " + userRegisterDto.getEmail());
+                logger.error(request_id + " - el usuario ya existe" );
                 throw new UserException.AlreadyExists();
             }
         } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - Error de integridad de datos: ", e);
+            logger.error(request_id + " - error en los datos del usuario");
             throw new UserException.InvalidData();
         } catch (Exception e) {
-            logger.error(request_id + " - Error inesperado al verificar usuario: ", e);
+            logger.error(request_id + " - error desconocido durante el registro: " + e.getMessage());
             throw e;
         }
-
+      
         // Get or create role
         Role userRole;
         try {
@@ -85,10 +103,8 @@ public class AuthService {
                 }
             }
         } catch (Exception e) {
-            logger.error(request_id + " - Error al manejar roles: ", e);
-            throw e;
+            logger.error(request_id + " - Error al manejar roles: ", e.getMessage());
         }
-
         User user = new User();
         
         user.setPassword(encoder.encode(userRegisterDto.getPassword()));        
@@ -100,10 +116,10 @@ public class AuthService {
         try{
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - Error de integridad al guardar usuario: ", e);
+            logger.error(request_id + " - error en los datos del usuario: " + e.getMessage());
             throw new UserException.InvalidData();
         } catch (Exception e) {
-            logger.error(request_id + " - Error inesperado al guardar usuario: ", e);
+            logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts': " + e.getMessage());
             throw e;
         }
 
@@ -121,45 +137,116 @@ public class AuthService {
         try{
             userInformationRepository.save(userInformation);
         } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - Error de integridad al guardar información del usuario: ", e);
+            logger.error(request_id + " - error en los datos del usuario: "+ e.getMessage());
             throw new UserException.InvalidData();
         } catch (Exception e) {
-            logger.error(request_id + " - Error inesperado al guardar información del usuario: ", e);
+            logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts_information': " + e.getMessage());
             throw e;
         }
     }
 
-    public AuthResponseDto login(String request_id, AuthRequestDto authRequestDto) {
-        String email = authRequestDto.getEmail();
-
-        logger.info(request_id + " - autenticando usuario: " + email + "...");
-        logger.info(request_id + " - email recibido: " + authRequestDto.getEmail());
-        logger.info(request_id + " - password recibido: " + (authRequestDto.getPassword() != null ? "***" : "NULL"));
-        
-        authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        authRequestDto.getEmail(),
-                        authRequestDto.getPassword()
-                )
-        );
+    public String login(String request_id, AuthRequestDto authRequestDto) {
+        String username = authRequestDto.getUsername();
+        User user;
 
         try{
-            User user = userRepository.findByEmail(email);
-
+            logger.info(request_id + " - buscando usuario '" + username + "' en la base de datos...");
+            user = userRepository.findByUsername(username);
             if(user == null){
+                logger.error(request_id + " - el usuario no existe");
                 throw new UserException.NotFound();
             }
-
-            String token = jwtService.generateToken(user);
-            logger.info(request_id + " - token: " + token);
-
-            AuthResponseDto response = new AuthResponseDto();
-            response.setToken(token);
-            return response;
         } catch (DataIntegrityViolationException e) {
+            logger.error(request_id + " - los datos recibidos estan corrompidos: " + e.getMessage());
             throw new UserException.InvalidData();
         } catch (Exception e) {
+            logger.error(request_id + " - error desconocido durante la obtencion: " + e.getMessage());
             throw e;
         }
+
+        logger.info(request_id + " - validando credenciales del usuario con las recibidas...");
+        try {
+            authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            username,
+                            authRequestDto.getPassword()
+                    )
+            );
+        } catch (BadCredentialsException e) {
+            logger.error(request_id + " - credenciales inválidas");
+            throw new UserException.InvalidData();
+
+        } catch(Exception e){
+            logger.error(request_id + " - error desconocido durante la validacion: " + e.getMessage());
+            throw new UserException.InvalidData(); // o un error genérico si querés ocultar detalles
+        }
+
+        logger.info(request_id + " - generando token para el usuario...");
+        String token = jwtService.generateToken(user);
+
+        logger.info(request_id + " - asignando token...");
+        AuthResponseDto response = new AuthResponseDto();
+        response.setToken(token);
+
+        return token;
     }
+
+    public void sendRecoveryToken(String email) {
+        logger.info("Iniciando envío de token de recuperación para: {}", email);
+
+        Optional<UserInformation> infoOpt = userInformationRepository.findByEmail(email);
+        if (infoOpt.isEmpty()) {
+            logger.error("Email no registrado: {}", email);
+            throw new RuntimeException("Email no registrado");
+        }
+
+        
+        UserInformation info = infoOpt.get();
+        User user = info.getUser();
+        String username = user.getUsername();
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiration = LocalDateTime.now().plusMinutes(30);
+
+        OtpToken otp = new OtpToken();
+        otp.setToken(token);
+        otp.setExpiration(expiration);
+        otp.setUser_id(user);
+        otp.setUsername(username);
+        otpTokenRepository.save(otp);
+
+        logger.info("Token de recuperación generado: {}", token);
+
+        String resetLink = "http://localhost:3000/reset-password?token=" + token;
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("noreply@technoexpress.com");
+        message.setTo(email);
+        message.setSubject("Recuperación de contraseña");
+        message.setText("Hola!\n\nPara restablecer tu contraseña, hacé clic en el siguiente enlace:\n"
+                + resetLink + "\n\nEste enlace expirará en 30 minutos.\n\nSaludos,\nEl equipo de TechnoExpress");
+
+        try {
+            logger.info("Enviando email a {}", email);
+            mailSender.send(message);
+            logger.info("Email enviado correctamente.");
+        } catch (Exception e) {
+            logger.error("Error al enviar el email: {}", e.getMessage());
+        }
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        OtpToken otp = otpTokenRepository.findByToken(token)
+                .orElseThrow(() -> new RuntimeException("Token inválido"));
+
+        if (otp.getExpiration().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Token expirado");
+        }
+
+        User user = otp.getUser_id();
+        user.setPassword(encoder.encode(newPassword));
+        userRepository.save(user);
+
+        otpTokenRepository.delete(otp);
+    }
+
+
 }

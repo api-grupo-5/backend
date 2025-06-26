@@ -5,6 +5,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import techno_express.backend.entity.User;
 import techno_express.backend.exception.UserException;
@@ -25,8 +26,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             User user = userRepository.findByEmail(email);
 
             if (user == null) {
-                System.out.println("UserDetailsServiceImpl - usuario no encontrado para email: " + email);
-                throw new UserException.NotFound();
+                throw new UsernameNotFoundException("Usuario no encontrado: " + username);
             }
 
             System.out.println("UserDetailsServiceImpl - usuario encontrado: " + user.getEmail());

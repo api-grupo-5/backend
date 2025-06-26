@@ -43,15 +43,22 @@ public class AuthController {
 
         logger.info("Login request received with request_id: " + request_id);
         logger.info(request_id + " - inicio de login");
-        AuthResponseDto response = authService.login(request_id, authRequestDto);
+        String token = authService.login(request_id, authRequestDto);
         logger.info(request_id + " - fin de login");
-        
-        Map<String, Object> body = new HashMap<>();
-        body.put("request_id", request_id);
-        body.put("code", "0200");
-        body.put("message", "ok");
-        body.put("token", response.getToken());
-        
-        return ResponseEntity.ok(body);
+        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, token);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestAttribute("request_id") String request_id, @RequestParam String email) {
+        authService.sendRecoveryToken(email);
+        return ResponseEntity.ok("Se generó un token de recuperación (revisá logs para verlo)");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @RequestParam String token,
+            @RequestParam String newPassword) {
+        authService.resetPassword(token, newPassword);
+        return ResponseEntity.ok("Contraseña actualizada correctamente");
     }
 }
