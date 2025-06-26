@@ -1,5 +1,6 @@
 package techno_express.backend.filters;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -17,6 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 
 import techno_express.backend.service.JwtService;
 import techno_express.backend.service.UserDetailsServiceImpl;
+import techno_express.backend.util.ResponseBuilder;
 
 
 @Component
@@ -53,7 +55,6 @@ public class JwtFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_OK);
             return;
         }
-
 
         final String authHeader = request.getHeader("Authorization");
         String username = null;
