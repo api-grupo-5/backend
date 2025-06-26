@@ -9,9 +9,13 @@ import techno_express.backend.dto.AuthRequestDto;
 import techno_express.backend.dto.UserRegisterDto;
 import techno_express.backend.service.AuthService;
 import techno_express.backend.util.ResponseBuilder;
+import techno_express.backend.dto.AuthResponseDto;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -37,6 +41,7 @@ public class AuthController {
                                    @RequestBody AuthRequestDto authRequestDto,
                                    HttpServletRequest request) {
 
+        logger.info("Login request received with request_id: " + request_id);
         logger.info(request_id + " - inicio de login");
         String token = authService.login(request_id, authRequestDto);
         logger.info(request_id + " - fin de login");

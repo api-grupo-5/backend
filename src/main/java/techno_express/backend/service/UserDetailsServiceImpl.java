@@ -20,16 +20,18 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String username) {
+    public UserDetails loadUserByUsername(String email) {
         try{
-            User user = userRepository.findByUsername(username);
+            System.out.println("UserDetailsServiceImpl - buscando usuario con email: " + email);
+            User user = userRepository.findByEmail(email);
 
             if (user == null) {
                 throw new UsernameNotFoundException("Usuario no encontrado: " + username);
             }
 
+            System.out.println("UserDetailsServiceImpl - usuario encontrado: " + user.getEmail());
             return new org.springframework.security.core.userdetails.User(
-                    user.getUsername(),
+                    user.getEmail(),
                     user.getPassword(),
                     List.of(new SimpleGrantedAuthority(user.getRole().getName()))
             );

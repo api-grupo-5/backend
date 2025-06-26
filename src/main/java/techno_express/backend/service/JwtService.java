@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.Claims;
 import techno_express.backend.entity.User;
 
 import java.security.Key;
@@ -26,7 +25,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .claim("role", user.getRole().getName())
-                .setSubject(user.getUsername())
+                .setSubject(user.getEmail())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -34,13 +33,12 @@ public class JwtService {
     }
 
     public String extractUsername(String token) {
-        JwtParser parser = Jwts.parserBuilder()
+        return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
-                .build();
-
-        Claims claims = parser.parseClaimsJws(token).getBody();
-
-        return claims.getSubject();
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
     }
 
     public boolean validateToken(String token, UserDetails userDetails) {

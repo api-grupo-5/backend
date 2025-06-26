@@ -1,6 +1,5 @@
 package techno_express.backend.service;
 import jakarta.transaction.Transactional;
-import org.apache.catalina.Authenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,10 +9,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import techno_express.backend.dto.AuthRequestDto;
@@ -21,6 +16,7 @@ import techno_express.backend.dto.AuthResponseDto;
 import techno_express.backend.entity.OtpToken;
 import techno_express.backend.entity.Role;
 import techno_express.backend.entity.User;
+import techno_express.backend.entity.Role;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,6 +30,7 @@ import techno_express.backend.repository.OtpTokenRepository;
 import techno_express.backend.repository.RoleRepository;
 import techno_express.backend.repository.UserRepository;
 import techno_express.backend.repository.UserInformationRepository;
+import techno_express.backend.repository.RoleRepository;
 import techno_express.backend.exception.UserException;
 
 @Service
@@ -70,7 +67,7 @@ public class AuthService {
         logger.info(request_id + " - registrando usuario '" + userRegisterDto.getUsername() + "'...");
 
         try{
-            User checking_user = userRepository.findByUsername(userRegisterDto.getUsername());
+            User checking_user = userRepository.findByEmail(userRegisterDto.getEmail());
 
             if(checking_user != null){
                 logger.error(request_id + " - el usuario ya existe" );
@@ -83,20 +80,43 @@ public class AuthService {
             logger.error(request_id + " - error desconocido durante el registro: " + e.getMessage());
             throw e;
         }
-
+      
+        // Get or create role
+        Role userRole;
+        try {
+            if (userRegisterDto.getRole() != null && !userRegisterDto.getRole().isEmpty()) {
+                logger.info(request_id + " - Buscando rol especificado: " + userRegisterDto.getRole());
+                userRole = roleRepository.findByName(userRegisterDto.getRole());
+                if (userRole == null) {
+                    logger.error(request_id + " - Rol no encontrado: " + userRegisterDto.getRole());
+                    throw new UserException.InvalidData();
+                }
+            } else {
+                logger.info(request_id + " - Usando rol por defecto: USER");
+                userRole = roleRepository.findByName("USER");
+                if (userRole == null) {
+                    logger.info(request_id + " - Creando rol por defecto: USER");
+                    userRole = new Role();
+                    userRole.setName("USER");
+                    userRole.setPermissions("READ");
+                    userRole = roleRepository.save(userRole);
+                }
+            }
+        } catch (Exception e) {
+            logger.error(request_id + " - Error al manejar roles: ", e.getMessage());
+        }
         User user = new User();
-        user.setUsername(userRegisterDto.getUsername());
-        user.setPassword(encoder.encode(userRegisterDto.getPassword()));
+        
+        user.setPassword(encoder.encode(userRegisterDto.getPassword()));        
+        user.setEmail(userRegisterDto.getEmail());
         user.setRegistered_on(LocalDateTime.now());
-
-        Role user_role = roleRepository.findById(1L).orElseThrow(() -> new RuntimeException("Rol por defecto no encontrado"));
-        user.setRole(user_role);
+        user.setRole(userRole);
         logger.info(request_id + " - guardando usuario en la tabla 'accounts'..." );
 
         try{
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - error en los datos del usuario");
+            logger.error(request_id + " - error en los datos del usuario: " + e.getMessage());
             throw new UserException.InvalidData();
         } catch (Exception e) {
             logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts': " + e.getMessage());
@@ -106,9 +126,9 @@ public class AuthService {
         logger.info(request_id + " - asignandole los datos de usuario correspondientes...");
         UserInformation userInformation = new UserInformation();
         userInformation.setUser(user);
+        userInformation.setUsername(userRegisterDto.getUsername());
         userInformation.setFirst_name(userRegisterDto.getFirst_name());
         userInformation.setLast_name(userRegisterDto.getLast_name());
-        userInformation.setEmail(userRegisterDto.getEmail());
         userInformation.setPersonal_id(userRegisterDto.getPersonal_id());
         userInformation.setPhone(userRegisterDto.getPhone());
         userInformation.setAddress(userRegisterDto.getAddress());
@@ -117,7 +137,7 @@ public class AuthService {
         try{
             userInformationRepository.save(userInformation);
         } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - error en los datos del usuario");
+            logger.error(request_id + " - error en los datos del usuario: "+ e.getMessage());
             throw new UserException.InvalidData();
         } catch (Exception e) {
             logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts_information': " + e.getMessage());
@@ -132,12 +152,10 @@ public class AuthService {
         try{
             logger.info(request_id + " - buscando usuario '" + username + "' en la base de datos...");
             user = userRepository.findByUsername(username);
-
             if(user == null){
                 logger.error(request_id + " - el usuario no existe");
                 throw new UserException.NotFound();
             }
-
         } catch (DataIntegrityViolationException e) {
             logger.error(request_id + " - los datos recibidos estan corrompidos: " + e.getMessage());
             throw new UserException.InvalidData();
@@ -165,7 +183,6 @@ public class AuthService {
 
         logger.info(request_id + " - generando token para el usuario...");
         String token = jwtService.generateToken(user);
-        logger.info(request_id + " - token: " + token);
 
         logger.info(request_id + " - asignando token...");
         AuthResponseDto response = new AuthResponseDto();
