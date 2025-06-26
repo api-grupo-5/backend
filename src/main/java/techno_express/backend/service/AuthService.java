@@ -82,7 +82,7 @@ public class AuthService {
         }
       
         // Get or create role
-        Role userRole;
+        Role userRole = null;
         try {
             if (userRegisterDto.getRole() != null && !userRegisterDto.getRole().isEmpty()) {
                 logger.info(request_id + " - Buscando rol especificado: " + userRegisterDto.getRole());
@@ -103,7 +103,13 @@ public class AuthService {
                 }
             }
         } catch (Exception e) {
-            logger.error(request_id + " - Error al manejar roles: ", e.getMessage());
+            logger.error(request_id + " - Error al manejar roles: " + e.getMessage());
+            throw new UserException.InvalidData();
+        }
+        
+        if (userRole == null) {
+            logger.error(request_id + " - No se pudo asignar un rol al usuario");
+            throw new UserException.InvalidData();
         }
         User user = new User();
         
@@ -146,12 +152,12 @@ public class AuthService {
     }
 
     public String login(String request_id, AuthRequestDto authRequestDto) {
-        String username = authRequestDto.getUsername();
+        String email = authRequestDto.getEmail();
         User user;
 
         try{
-            logger.info(request_id + " - buscando usuario '" + username + "' en la base de datos...");
-            user = userRepository.findByUsername(username);
+            logger.info(request_id + " - buscando usuario '" + email + "' en la base de datos...");
+            user = userRepository.findByEmail(email);
             if(user == null){
                 logger.error(request_id + " - el usuario no existe");
                 throw new UserException.NotFound();
@@ -168,7 +174,7 @@ public class AuthService {
         try {
             authManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            username,
+                            email,
                             authRequestDto.getPassword()
                     )
             );
@@ -203,7 +209,7 @@ public class AuthService {
         
         UserInformation info = infoOpt.get();
         User user = info.getUser();
-        String username = user.getUsername();
+        String username = user.getEmail();
         String token = UUID.randomUUID().toString();
         LocalDateTime expiration = LocalDateTime.now().plusMinutes(30);
 
