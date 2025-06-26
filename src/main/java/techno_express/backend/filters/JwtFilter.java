@@ -43,6 +43,12 @@ public class JwtFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
+
+        if (path.startsWith("/api/products/")) { //si es algo de productos, proceda sin nada tramqui
+            chain.doFilter(request, response);
+            return;
+        }
+
         if (request.getMethod().equalsIgnoreCase("OPTIONS")) {
             response.setStatus(HttpServletResponse.SC_OK);
             return;
