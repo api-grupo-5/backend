@@ -12,16 +12,12 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
-    private String password;
     private String email;
+    private String password;
     private LocalDateTime registered_on;
     private LocalDateTime last_logged_in;
 
     @ManyToOne
     @JoinColumn(name="role_id")
     private Role role;
-
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private UserInformation userInformation;
 }

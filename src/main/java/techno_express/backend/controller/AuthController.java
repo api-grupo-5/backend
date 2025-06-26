@@ -5,11 +5,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import techno_express.backend.dto.AuthRequestDto;
-import techno_express.backend.dto.UserRegisterDto;
+import techno_express.backend.dto.*;
 import techno_express.backend.service.AuthService;
 import techno_express.backend.util.ResponseBuilder;
-import techno_express.backend.dto.AuthResponseDto;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +39,6 @@ public class AuthController {
                                    @RequestBody AuthRequestDto authRequestDto,
                                    HttpServletRequest request) {
 
-        logger.info("Login request received with request_id: " + request_id);
         logger.info(request_id + " - inicio de login");
         String token = authService.login(request_id, authRequestDto);
         logger.info(request_id + " - fin de login");
@@ -49,16 +46,24 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<String> forgotPassword(@RequestAttribute("request_id") String request_id, @RequestParam String email) {
-        authService.sendRecoveryToken(email);
-        return ResponseEntity.ok("Se generó un token de recuperación (revisá logs para verlo)");
+    public ResponseEntity<Object> forgotPassword(@RequestAttribute("request_id") String request_id,
+                                                 @RequestBody AuthForgotPasswordDto authForgotPasswordDto,
+                                                 HttpServletRequest request) {
+        logger.info(request_id + " - inicio de forgot-password");
+        authService.sendRecoveryToken(request_id, authForgotPasswordDto);
+        logger.info(request_id + " - fin de forgot-password");
+        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(
-            @RequestParam String token,
-            @RequestParam String newPassword) {
-        authService.resetPassword(token, newPassword);
-        return ResponseEntity.ok("Contraseña actualizada correctamente");
+    public ResponseEntity<Object> resetPassword(
+            @RequestAttribute("request_id") String request_id,
+            @RequestBody AuthResetPasswordDto authResetPasswordDto,
+            HttpServletRequest request) {
+
+        logger.info(request_id + " - inicio de reset-password");
+        authService.resetPassword(request_id, authResetPasswordDto);
+        logger.info(request_id + " - fin de reset-password");
+        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
 }

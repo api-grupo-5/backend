@@ -1,5 +1,7 @@
 package techno_express.backend.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -12,9 +14,11 @@ import techno_express.backend.exception.UserException;
 import techno_express.backend.repository.UserRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
+    private static final Logger logger = LoggerFactory.getLogger(UserDetailsServiceImpl.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -22,14 +26,15 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) {
         try{
-            System.out.println("UserDetailsServiceImpl - buscando usuario con email: " + email);
-            User user = userRepository.findByEmail(email);
+            logger.info("UserDetailsServiceImpl - buscando usuario con email: " + email);
+            Optional<User> optionalUser = userRepository.findByEmail(email);
 
-            if (user == null) {
-                throw new UsernameNotFoundException("Usuario no encontrado: " + username);
+            if (optionalUser.isEmpty()) {
+                throw new UsernameNotFoundException("Usuario no encontrado: " + email);
             }
 
-            System.out.println("UserDetailsServiceImpl - usuario encontrado: " + user.getEmail());
+            User user = optionalUser.get();
+            logger.info("UserDetailsServiceImpl - usuario encontrado");
             return new org.springframework.security.core.userdetails.User(
                     user.getEmail(),
                     user.getPassword(),

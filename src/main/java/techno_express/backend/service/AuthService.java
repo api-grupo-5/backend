@@ -11,8 +11,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import techno_express.backend.dto.AuthRequestDto;
-import techno_express.backend.dto.AuthResponseDto;
+import techno_express.backend.dto.*;
 import techno_express.backend.entity.OtpToken;
 import techno_express.backend.entity.Role;
 import techno_express.backend.entity.User;
@@ -24,7 +23,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import techno_express.backend.dto.UserRegisterDto;
 import techno_express.backend.entity.UserInformation;
 import techno_express.backend.repository.OtpTokenRepository;
 import techno_express.backend.repository.RoleRepository;
@@ -49,7 +47,6 @@ public class AuthService {
     @Autowired
     private OtpTokenRepository otpTokenRepository;
 
-
     @Autowired
     private UserInformationRepository userInformationRepository;
 
@@ -65,14 +62,10 @@ public class AuthService {
     @Transactional
     public void register(String request_id, UserRegisterDto userRegisterDto) {
         logger.info(request_id + " - registrando usuario '" + userRegisterDto.getUsername() + "'...");
+        Optional<User> checking_user;
 
         try{
-            User checking_user = userRepository.findByEmail(userRegisterDto.getEmail());
-
-            if(checking_user != null){
-                logger.error(request_id + " - el usuario ya existe" );
-                throw new UserException.AlreadyExists();
-            }
+            checking_user = userRepository.findByEmail(userRegisterDto.getUsername());
         } catch (DataIntegrityViolationException e) {
             logger.error(request_id + " - error en los datos del usuario");
             throw new UserException.InvalidData();
@@ -80,9 +73,14 @@ public class AuthService {
             logger.error(request_id + " - error desconocido durante el registro: " + e.getMessage());
             throw e;
         }
-      
+
+        if(checking_user.isPresent()){
+            logger.error(request_id + " - el usuario ya existe" );
+            throw new UserException.AlreadyExists();
+        }
+
         // Get or create role
-        Role userRole;
+        Role userRole = null;
         try {
             if (userRegisterDto.getRole() != null && !userRegisterDto.getRole().isEmpty()) {
                 logger.info(request_id + " - Buscando rol especificado: " + userRegisterDto.getRole());
@@ -95,6 +93,7 @@ public class AuthService {
                 logger.info(request_id + " - Usando rol por defecto: USER");
                 userRole = roleRepository.findByName("USER");
                 if (userRole == null) {
+                    // esto no deberia ir porque le agrega responsabilidades que no tendria que tener el registro, te lo dejo porque es práctico para testear pero en realidad no va
                     logger.info(request_id + " - Creando rol por defecto: USER");
                     userRole = new Role();
                     userRole.setName("USER");
@@ -106,13 +105,12 @@ public class AuthService {
             logger.error(request_id + " - Error al manejar roles: ", e.getMessage());
         }
         User user = new User();
-        
-        user.setPassword(encoder.encode(userRegisterDto.getPassword()));        
+        user.setPassword(encoder.encode(userRegisterDto.getPassword()));
         user.setEmail(userRegisterDto.getEmail());
         user.setRegistered_on(LocalDateTime.now());
         user.setRole(userRole);
-        logger.info(request_id + " - guardando usuario en la tabla 'accounts'..." );
 
+        logger.info(request_id + " - guardando usuario en la tabla 'accounts'..." );
         try{
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
@@ -126,7 +124,7 @@ public class AuthService {
         logger.info(request_id + " - asignandole los datos de usuario correspondientes...");
         UserInformation userInformation = new UserInformation();
         userInformation.setUser(user);
-        userInformation.setUsername(userRegisterDto.getUsername());
+        userInformation.setEmail(userRegisterDto.getEmail());
         userInformation.setFirst_name(userRegisterDto.getFirst_name());
         userInformation.setLast_name(userRegisterDto.getLast_name());
         userInformation.setPersonal_id(userRegisterDto.getPersonal_id());
@@ -146,13 +144,13 @@ public class AuthService {
     }
 
     public String login(String request_id, AuthRequestDto authRequestDto) {
-        String username = authRequestDto.getUsername();
-        User user;
+        String username = authRequestDto.getEmail();
+        Optional<User> optionalUser;
 
         try{
             logger.info(request_id + " - buscando usuario '" + username + "' en la base de datos...");
-            user = userRepository.findByUsername(username);
-            if(user == null){
+            optionalUser = userRepository.findByEmail(username);
+            if(optionalUser.isEmpty()){
                 logger.error(request_id + " - el usuario no existe");
                 throw new UserException.NotFound();
             }
@@ -182,6 +180,7 @@ public class AuthService {
         }
 
         logger.info(request_id + " - generando token para el usuario...");
+        User user = optionalUser.get();
         String token = jwtService.generateToken(user);
 
         logger.info(request_id + " - asignando token...");
@@ -191,62 +190,95 @@ public class AuthService {
         return token;
     }
 
-    public void sendRecoveryToken(String email) {
-        logger.info("Iniciando envío de token de recuperación para: {}", email);
+    public void sendRecoveryToken(String request_id, AuthForgotPasswordDto authForgotPasswordDto) {
+        String email = authForgotPasswordDto.getEmail();
+        logger.info(request_id + " - validando que exista el usuario: {}...", email);
 
-        Optional<UserInformation> infoOpt = userInformationRepository.findByEmail(email);
-        if (infoOpt.isEmpty()) {
-            logger.error("Email no registrado: {}", email);
-            throw new RuntimeException("Email no registrado");
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+        if (optionalUser.isEmpty()) {
+            logger.error(request_id + " - Email no registrado");
+            throw new UserException.NotFound();
         }
 
-        
-        UserInformation info = infoOpt.get();
-        User user = info.getUser();
-        String username = user.getUsername();
-        String token = UUID.randomUUID().toString();
-        LocalDateTime expiration = LocalDateTime.now().plusMinutes(30);
 
-        OtpToken otp = new OtpToken();
-        otp.setToken(token);
-        otp.setExpiration(expiration);
-        otp.setUser_id(user);
-        otp.setUsername(username);
-        otpTokenRepository.save(otp);
+        logger.info(request_id + " - validando si el usuario ya tiene un token generado");
+        User user = optionalUser.get();
+        Optional<OtpToken> checking_email = otpTokenRepository.findByUsername(user.getEmail());
+        boolean create_new_token = true;
+        boolean token_doesnt_exist = checking_email.isEmpty();
+        String token = "";
+        if (!token_doesnt_exist) {
+            logger.error(request_id + " - el usuario ya tiene un token generado");
 
-        logger.info("Token de recuperación generado: {}", token);
+            logger.info(request_id + " - validando si el vencimiento del token que tiene es valido actualmente...");
+            if (LocalDateTime.now().isBefore(checking_email.get().getExpiration())) {
+                logger.info(request_id + " - el token sigue siendo valido actualmente");
+                create_new_token = false;
+                token = checking_email.get().getToken();
+            } else{
+                logger.info(request_id + " - el token está vencido, eliminando token viejo");
+                otpTokenRepository.delete(checking_email.get());
+            }
+        }
 
-        String resetLink = "http://localhost:3000/reset-password?token=" + token;
+        if ((!token_doesnt_exist && create_new_token) || (create_new_token)) {
+            logger.info(request_id + " - generando token...");
+            String username = user.getEmail();
+            token = UUID.randomUUID().toString();
+            LocalDateTime expiration = LocalDateTime.now().plusMinutes(30);
+
+            OtpToken otp = new OtpToken();
+            otp.setToken(token);
+            otp.setExpiration(expiration);
+            otp.setUser_id(user);
+            otp.setUsername(username);
+            otpTokenRepository.save(otp);
+
+            logger.info("Token de recuperación generado: {}", token);
+        }
+
+        logger.info(request_id + " - generando mail de recuperación...");
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("noreply@technoexpress.com");
         message.setTo(email);
         message.setSubject("Recuperación de contraseña");
-        message.setText("Hola!\n\nPara restablecer tu contraseña, hacé clic en el siguiente enlace:\n"
-                + resetLink + "\n\nEste enlace expirará en 30 minutos.\n\nSaludos,\nEl equipo de TechnoExpress");
+        message.setText("Hola!\n\nPara restablecer tu contraseña, por favor ingresa el token:\n"
+                + token + "\n\nEste enlace expirará en 30 minutos.\n\nSaludos,\nEl equipo de TechnoExpress");
 
         try {
-            logger.info("Enviando email a {}", email);
+            logger.info(request_id + " - Enviando email...");
             mailSender.send(message);
-            logger.info("Email enviado correctamente.");
+            logger.info(request_id + " - Email enviado correctamente.");
         } catch (Exception e) {
-            logger.error("Error al enviar el email: {}", e.getMessage());
+            logger.error(request_id + " - Error al enviar el email: {}", e.getMessage());
         }
     }
 
-    public void resetPassword(String token, String newPassword) {
-        OtpToken otp = otpTokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Token inválido"));
+    public void resetPassword(String request_id, AuthResetPasswordDto authResetPasswordDto) {
+        String token = authResetPasswordDto.getToken();
+        String newPassword = authResetPasswordDto.getPassword();
 
-        if (otp.getExpiration().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token expirado");
+        logger.info(request_id + " - token recibido: " + token);
+        logger.info(request_id + " - validando que el token exista en la base de datos...");
+        Optional<OtpToken> otp = otpTokenRepository.findByToken(token);
+
+        if (otp.isEmpty()){
+            logger.error(request_id + " - token no encontrado");
+            throw new UserException.InvalidOtpToken();
         }
 
-        User user = otp.getUser_id();
-        user.setPassword(encoder.encode(newPassword));
-        userRepository.save(user);
+        logger.info(request_id + " - validando que el token no este vencido...");
+        if (LocalDateTime.now().isAfter(otp.get().getExpiration())) {
+            logger.error(request_id + " - el token esta vencido");
+            throw new UserException.ExpiredToken();
+        }
 
-        otpTokenRepository.delete(otp);
+        logger.info(request_id + " - actualizando datos del usuario...");
+        Optional<User> user = userRepository.findByEmail(otp.get().getUsername());
+        user.get().setPassword(encoder.encode(newPassword));
+        userRepository.save(user.get());
+
+        logger.info(request_id + " - eliminado token usado...");
+        otpTokenRepository.delete(otp.get());
     }
-
-
 }

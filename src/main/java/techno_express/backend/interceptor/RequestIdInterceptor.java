@@ -2,13 +2,19 @@ package techno_express.backend.interceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+import techno_express.backend.controller.AuthController;
+import techno_express.backend.util.ResponseBuilder;
 
 import java.io.IOException;
 
 @Component
 public class RequestIdInterceptor implements HandlerInterceptor {
+    private static final Logger logger = LoggerFactory.getLogger(RequestIdInterceptor.class);
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
@@ -19,8 +25,11 @@ public class RequestIdInterceptor implements HandlerInterceptor {
 
         String requestId = request.getHeader("request_id");
         if (requestId == null || requestId.isEmpty()) {
-            System.out.println("Se envió una peticion sin request_id: " + request.getRequestURI());
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing request_id header");
+            logger.error("Se envió una peticion sin request_id al endpoint: " + request.getRequestURI());
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"Missing request_id header\"}");
+            response.getWriter().flush();
             return false;
         }
 

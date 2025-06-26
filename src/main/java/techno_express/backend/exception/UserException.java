@@ -25,4 +25,16 @@ public abstract class UserException extends GenericException {
             super(HttpStatus.BAD_REQUEST, "0412", "Datos del usuario inválidos");
         }
     }
+
+    public static class ExpiredToken extends UserException {
+        public ExpiredToken() {
+            super(HttpStatus.BAD_REQUEST, "0403", "Token vencido");
+        }
+    }
+
+    public static class InvalidOtpToken extends UserException {
+        public InvalidOtpToken() {
+            super(HttpStatus.BAD_REQUEST, "0404", "Token de recuperacion de cuenta inexistente");
+        }
+    }
 }

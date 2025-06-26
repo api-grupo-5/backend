@@ -13,14 +13,15 @@ public class UserInformation {
 
     @OneToOne
     @MapsId
+    @JoinColumn(name = "user_id")
     private User user;
 
-    private String username;
     private String first_name;
     private String last_name;
     private int personal_id;
     private String phone;
     private String address;
+    private String email;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Order> orders; // historial de pedidos

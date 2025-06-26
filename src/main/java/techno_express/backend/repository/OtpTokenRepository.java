@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface OtpTokenRepository extends JpaRepository<OtpToken, Long> {
     Optional<OtpToken> findByToken(String token);
+    Optional<OtpToken> findByUsername(String username);
 }
