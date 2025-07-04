@@ -10,7 +10,7 @@ public abstract class ProductException extends GenericException {
     // Subclases internas
     public static class NotFound extends ProductException {
         public NotFound() {
-            super(HttpStatus.NOT_FOUND, "0201", "El producto no fue encontrado");
+            super(HttpStatus.NOT_FOUND, "0202", "El producto no fue encontrado");
         }
     }
 }

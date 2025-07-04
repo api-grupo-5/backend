@@ -14,6 +14,12 @@ import techno_express.backend.util.ResponseBuilder;
 public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(CartException.class)
+    public ResponseEntity<Object> handleCartException(CartException ex, HttpServletRequest request) {
+        logger.error("Cart Exception: ", ex);
+        return ResponseBuilder.buildResponse(ex.getStatus(), ex.getCode(), ex.getMessage(), request);
+    }
+
     @ExceptionHandler(ProductException.class)
     public ResponseEntity<Object> handleProductException(ProductException ex, HttpServletRequest request) {
         logger.error("Product Exception: ", ex);
