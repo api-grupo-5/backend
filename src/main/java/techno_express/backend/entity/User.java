@@ -25,4 +25,8 @@ public class User {
 
     @OneToMany(mappedBy = "user_id", cascade = CascadeType.ALL, orphanRemoval = false, fetch = FetchType.LAZY)
     private List<Ban> bans = new ArrayList<>();
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private UserInformation userInformation;
+
 }
