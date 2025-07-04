@@ -15,11 +15,9 @@ import techno_express.backend.dto.*;
 import techno_express.backend.entity.OtpToken;
 import techno_express.backend.entity.Role;
 import techno_express.backend.entity.User;
-import techno_express.backend.entity.Role;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,7 +26,6 @@ import techno_express.backend.repository.OtpTokenRepository;
 import techno_express.backend.repository.RoleRepository;
 import techno_express.backend.repository.UserRepository;
 import techno_express.backend.repository.UserInformationRepository;
-import techno_express.backend.repository.RoleRepository;
 import techno_express.backend.exception.UserException;
 
 @Service
@@ -102,11 +99,11 @@ public class AuthService {
                 }
             }
         } catch (Exception e) {
-            logger.error(request_id + " - Error al manejar roles: ", e.getMessage());
+            logger.error(request_id + " - Error al manejar roles: ", e);
         }
         User user = new User();
         user.setPassword(encoder.encode(userRegisterDto.getPassword()));
-        user.setEmail(userRegisterDto.getEmail());
+        user.setEmail(userRegisterDto.getUsername());
         user.setRegistered_on(LocalDateTime.now());
         user.setRole(userRole);
 
@@ -114,10 +111,10 @@ public class AuthService {
         try{
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - error en los datos del usuario: " + e.getMessage());
+            logger.error(request_id + " - error en los datos del usuario: " + e);
             throw new UserException.InvalidData();
         } catch (Exception e) {
-            logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts': " + e.getMessage());
+            logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts': " + e);
             throw e;
         }
 
@@ -135,15 +132,15 @@ public class AuthService {
         try{
             userInformationRepository.save(userInformation);
         } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - error en los datos del usuario: "+ e.getMessage());
+            logger.error(request_id + " - error en los datos del usuario: "+ e);
             throw new UserException.InvalidData();
         } catch (Exception e) {
-            logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts_information': " + e.getMessage());
+            logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts_information': " + e);
             throw e;
         }
     }
 
-    public String login(String request_id, AuthRequestDto authRequestDto) {
+    public HashMap<String, Object> login(String request_id, AuthRequestDto authRequestDto) {
         String username = authRequestDto.getEmail();
         Optional<User> optionalUser;
 
@@ -155,10 +152,10 @@ public class AuthService {
                 throw new UserException.NotFound();
             }
         } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - los datos recibidos estan corrompidos: " + e.getMessage());
+            logger.error(request_id + " - los datos recibidos estan corrompidos: " + e);
             throw new UserException.InvalidData();
         } catch (Exception e) {
-            logger.error(request_id + " - error desconocido durante la obtencion: " + e.getMessage());
+            logger.error(request_id + " - error desconocido durante la obtencion: " + e);
             throw e;
         }
 
@@ -175,7 +172,7 @@ public class AuthService {
             throw new UserException.InvalidData();
 
         } catch(Exception e){
-            logger.error(request_id + " - error desconocido durante la validacion: " + e.getMessage());
+            logger.error(request_id + " - error desconocido durante la validacion: " + e);
             throw new UserException.InvalidData(); // o un error genérico si querés ocultar detalles
         }
 
@@ -187,7 +184,15 @@ public class AuthService {
         AuthResponseDto response = new AuthResponseDto();
         response.setToken(token);
 
-        return token;
+        logger.info(request_id + " - actualizando ultimo inicio de sesion...");
+        user.setLast_logged_in(LocalDateTime.now());
+        userRepository.save(user);
+
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("token", token);
+        result.put("user", user.getId());
+        result.put("role", user.getRole());
+        return result;
     }
 
     public void sendRecoveryToken(String request_id, AuthForgotPasswordDto authForgotPasswordDto) {
@@ -250,7 +255,7 @@ public class AuthService {
             mailSender.send(message);
             logger.info(request_id + " - Email enviado correctamente.");
         } catch (Exception e) {
-            logger.error(request_id + " - Error al enviar el email: {}", e.getMessage());
+            logger.error(request_id + " - Error al enviar el email: {}", e);
         }
     }
 

@@ -33,6 +33,7 @@ public class RequestIdInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        logger.info("----------- inicio request "+requestId+" -----------");
         request.setAttribute("request_id", requestId);
         return true;
     }

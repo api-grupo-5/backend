@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -40,9 +39,9 @@ public class AuthController {
                                    HttpServletRequest request) {
 
         logger.info(request_id + " - inicio de login");
-        String token = authService.login(request_id, authRequestDto);
+        HashMap<String, Object> result = authService.login(request_id, authRequestDto);
         logger.info(request_id + " - fin de login");
-        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, token);
+        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, result);
     }
 
     @PostMapping("/forgot-password")
