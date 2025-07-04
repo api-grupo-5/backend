@@ -69,7 +69,7 @@ public class CartService {
 
                 if(dupped_item.isPresent()) {
                     cartItem = dupped_item.get();
-                    cartItem.setQuantity(cartItem.getQuantity() + item.getQuantity());
+                    cartItem.setQuantity(item.getQuantity());
                 } else{
                     cartItem = new CartItem();
                     cartItem.setCart(cart);
