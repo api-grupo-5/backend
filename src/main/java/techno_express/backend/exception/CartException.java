@@ -13,4 +13,8 @@ public abstract class CartException extends GenericException {
             super(HttpStatus.CONFLICT, "0411", "El usuario ya tiene un carrito creado");
         }
     }
+
+    public static class NotExists extends CartException {
+        public NotExists() { super(HttpStatus.CONFLICT, "0201", "El carrito no existe"); }
+    }
 }

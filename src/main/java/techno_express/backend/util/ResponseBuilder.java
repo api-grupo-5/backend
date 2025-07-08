@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import techno_express.backend.entity.CartItem;
 import techno_express.backend.entity.Product;
 import techno_express.backend.service.AuthService;
 

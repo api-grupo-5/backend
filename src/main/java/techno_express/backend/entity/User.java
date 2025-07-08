@@ -1,11 +1,13 @@
 package techno_express.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Data
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity(name="users")
 public class User {
     @Id
@@ -17,7 +19,7 @@ public class User {
     private LocalDateTime registered_on;
     private LocalDateTime last_logged_in;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name="role_id")
     private Role role;
 }

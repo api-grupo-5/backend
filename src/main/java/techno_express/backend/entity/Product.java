@@ -1,9 +1,11 @@
 package techno_express.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity(name="products")
 public class Product {
     @Id
@@ -17,7 +19,7 @@ public class Product {
     private String image;
     private String category;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "seller_id")
     private User seller;
 }

@@ -1,6 +1,7 @@
 package techno_express.backend.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,14 +23,25 @@ public class CartController {
     @Autowired
     private CartService cartService;
 
-    @PostMapping("/")
-    public ResponseEntity<?> register(@RequestAttribute("request_id") String request_id,
+    @PostMapping("/saveCart")
+    public ResponseEntity<?> save_cart(@RequestAttribute("request_id") String request_id,
                                       @RequestBody CartDto cartDto,
                                       HttpServletRequest request) {
 
-        logger.info(request_id + " - inicio de creacion de carrito");
-        cartService.create_cart(request_id, cartDto);
-        logger.info(request_id + " - fin de creacion de carrito");
+        logger.info(request_id + " - inicio de guardado de carrito");
+        cartService.save_cart(request_id, cartDto);
+        logger.info(request_id + " - fin de guardado de carrito");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
+    }
+
+    @PostMapping("/loadCart")
+    public ResponseEntity<?> load_cart(@RequestAttribute("request_id") String request_id,
+                                       @RequestBody CartDto cartDto,
+                                       HttpServletRequest request) {
+
+        logger.info(request_id + " - inicio de obtencion de carrito");
+        HashMap<String, Object> result = cartService.load_cart(request_id, cartDto);
+        logger.info(request_id + " - fin de obtencion de carrito");
+        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, result);
     }
 }
