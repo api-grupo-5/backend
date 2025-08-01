@@ -46,7 +46,7 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (path.startsWith("/api/products/")) { //si es algo de productos, proceda sin nada tramqui
+        if (path.startsWith("/api/products")) { //si es algo de productos, proceda sin nada tramqui
             chain.doFilter(request, response);
             return;
         }

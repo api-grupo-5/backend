@@ -9,10 +9,9 @@ import techno_express.backend.dto.ProductDto;
 import techno_express.backend.entity.Product;
 import techno_express.backend.entity.User;
 import techno_express.backend.repository.ProductRepository;
-import techno_express.backend.exception.UserException;
 import techno_express.backend.exception.ProductException;
-import techno_express.backend.repository.UserInformationRepository;
 import techno_express.backend.repository.UserRepository;
+import techno_express.backend.util.ProductValidator;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,15 +25,19 @@ public class ProductService {
     private ProductRepository productRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private ProductValidator productValidator;
 
-    public List<Product> getAllProducts(String request_id) {
-        logger.info(request_id + " obteniendo todos los productos de la base de datos...");
-        return productRepository.findAll();
+    public List<ProductDto> getAllProducts(String request_id) {
+        logger.info(request_id + " - obteniendo todos los productos...");
+        List<Product> products = productRepository.findAll();
+
+        return products.stream()
+                .map(ProductDto::new)
+                .toList();
     }
 
-    public Product getProductById(String request_id, Long id) {
-        logger.info(request_id + " obteniendo producto con el id: '" + id + "' de la base de datos...");
+    public ProductDto getProductById(String request_id, Long id) {
+        logger.info(request_id + " - obteniendo producto con el id: '" + id + "'...");
         Optional<Product> product = productRepository.findById(id);
 
         if (product.isEmpty()){
@@ -42,33 +45,23 @@ public class ProductService {
             throw new ProductException.NotFound();
         }
 
-        return product.get();
+        return new ProductDto(product.get());
     }
 
-    public void saveProduct(String request_id, ProductDto productDto) {
-        logger.info(request_id + " - validando que exista algun usuario con el id: '" + productDto.getSeller() + "' en la base de datos...");
-
-        Optional<User> user = userRepository.findById(productDto.getSeller());
-
-        if (user.isEmpty()){
-            logger.error(request_id + " - el usuario no existe");
-            throw new UserException.NotFound();
-        }
+    public void createProduct(String request_id, ProductDto productDto) {
+        User seller = productValidator.validateProductDto(request_id, productDto);
 
         logger.info(request_id + " - creando el producto: '" + productDto.getName() + "'...");
         Product newProduct = new Product();
-        newProduct.setName(productDto.getName());
-        newProduct.setDescription(productDto.getDescription());
-        newProduct.setPrice(productDto.getPrice());
-        newProduct.setStock(productDto.getStock());
-        newProduct.setImage(productDto.getImage());
-        newProduct.setCategory(productDto.getCategory());
-        newProduct.setSeller(user.get());
+        newProduct = productValidator.setProductData(newProduct, productDto, seller);
 
+        logger.info(request_id + " - guardando producto...");
         productRepository.save(newProduct);
     }
 
     public void updateProduct(String request_id, ProductDto productDto) {
+        User seller = productValidator.validateProductDto(request_id, productDto);
+
         logger.info(request_id + " - validando que exista el producto con el id: '" + productDto.getId() + "' en la base de datos...");
         Optional<Product> product = productRepository.findById(productDto.getId());
 
@@ -77,23 +70,10 @@ public class ProductService {
             throw new ProductException.NotFound();
         }
 
-        logger.info(request_id + " - validando que exista algun usuario con el id: '" + productDto.getSeller() + "' en la base de datos...");
-        Optional<User> user = userRepository.findById(productDto.getSeller());
-        if (user.isEmpty()){
-            logger.error(request_id + " - el usuario no existe");
-            throw new UserException.NotFound();
-        }
-
         logger.info(request_id + " - actualizando el producto...");
-        Product updatedProduct = product.get();
-        updatedProduct.setName(productDto.getName());
-        updatedProduct.setDescription(productDto.getDescription());
-        updatedProduct.setPrice(productDto.getPrice());
-        updatedProduct.setStock(productDto.getStock());
-        updatedProduct.setImage(productDto.getImage());
-        updatedProduct.setCategory(productDto.getCategory());
-        updatedProduct.setSeller(user.get());
+        Product updatedProduct = productValidator.setProductData(product.get(), productDto, seller);
 
+        logger.info(request_id + " - guardando cambios del producto...");
         productRepository.save(updatedProduct);
     }
 }

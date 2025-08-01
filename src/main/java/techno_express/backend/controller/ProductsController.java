@@ -22,11 +22,11 @@ public class ProductsController {
     @Autowired
     private ProductService productService;
 
-    @GetMapping("/getAllProducts")
+    @GetMapping(path = {"/", ""})
     public ResponseEntity<?> getAllProducts(@RequestAttribute("request_id") String request_id,
                                             HttpServletRequest request){
         logger.info(request_id + " - inicio de getAllProducts");
-        List<Product> products = productService.getAllProducts(request_id);
+        List<ProductDto> products = productService.getAllProducts(request_id);
         logger.info(request_id + " - fin de getAllProducts");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, products);
     }
@@ -35,23 +35,23 @@ public class ProductsController {
     public ResponseEntity<?> getProductById(@PathVariable Long id,
                                             @RequestAttribute("request_id") String request_id,
                                             HttpServletRequest request){
-        logger.info(request_id + " - inicio de getAllProducts");
-        Product product = productService.getProductById(request_id, id);
-        logger.info(request_id + " - fin de getAllProducts");
+        logger.info(request_id + " - inicio de getProductById");
+        ProductDto product = productService.getProductById(request_id, id);
+        logger.info(request_id + " - fin de getProductById");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, product);
     }
 
-    @PostMapping("/")
+    @PostMapping(path = {"/", ""})
     public ResponseEntity<?> createProduct(@RequestAttribute("request_id") String request_id,
                                            HttpServletRequest request,
                                            @RequestBody ProductDto productDto){
         logger.info(request_id + " - inicio de createProduct");
-        productService.saveProduct(request_id, productDto);
+        productService.createProduct(request_id, productDto);
         logger.info(request_id + " - fin de createProduct");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
 
-    @PutMapping("/")
+    @PutMapping(path = {"/", ""})
     public ResponseEntity<?> updateProduct(@RequestAttribute("request_id") String request_id,
                                            HttpServletRequest request,
                                            @RequestBody ProductDto productDto){

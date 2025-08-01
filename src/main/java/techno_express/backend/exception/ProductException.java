@@ -13,4 +13,10 @@ public abstract class ProductException extends GenericException {
             super(HttpStatus.NOT_FOUND, "0201", "El producto no fue encontrado");
         }
     }
+
+    public static class InvalidData extends ProductException {
+        public InvalidData() {
+            super(HttpStatus.BAD_REQUEST, "0412", "Datos del producto inválidos");
+        }
+    }
 }
