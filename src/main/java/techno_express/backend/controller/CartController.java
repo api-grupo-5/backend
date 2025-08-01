@@ -23,25 +23,27 @@ public class CartController {
     @Autowired
     private CartService cartService;
 
-    @PostMapping("/saveCart")
-    public ResponseEntity<?> save_cart(@RequestAttribute("request_id") String request_id,
-                                      @RequestBody CartDto cartDto,
-                                      HttpServletRequest request) {
-
-        logger.info(request_id + " - inicio de guardado de carrito");
-        cartService.save_cart(request_id, cartDto);
-        logger.info(request_id + " - fin de guardado de carrito");
-        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
-    }
-
-    @PostMapping("/loadCart")
+    @GetMapping("/{id}")
     public ResponseEntity<?> load_cart(@RequestAttribute("request_id") String request_id,
                                        @RequestBody CartDto cartDto,
+                                       @PathVariable Long id,
                                        HttpServletRequest request) {
 
-        logger.info(request_id + " - inicio de obtencion de carrito");
-        HashMap<String, Object> result = cartService.load_cart(request_id, cartDto);
-        logger.info(request_id + " - fin de obtencion de carrito");
+        logger.info(request_id + " - inicio de load_cart");
+        HashMap<String, Object> result = cartService.load_cart(request_id, cartDto, id);
+        logger.info(request_id + " - fin de load_cart");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, result);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> save_cart(@RequestAttribute("request_id") String request_id,
+                                       @RequestBody CartDto cart_dto,
+                                       @PathVariable Long id,
+                                       HttpServletRequest request) {
+
+        logger.info(request_id + " - inicio de save_cart");
+        cartService.save_cart(request_id, cart_dto, id);
+        logger.info(request_id + " - fin de save_cart");
+        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
 }

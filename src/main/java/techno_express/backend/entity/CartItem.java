@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Entity(name = "cart_items")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
@@ -23,4 +25,18 @@ public class CartItem {
     @JoinColumn(name = "cart_id")
     @JsonBackReference
     private Cart cart;
+
+    private LocalDateTime added_on;
+    private LocalDateTime updated_on;
+
+    @Override
+    public String toString() {
+        return "CartItem{" +
+                "id=" + id +
+                ", quantity=" + quantity +
+                ", productId=" + (product != null ? product.getId() : "null") +
+                ", productName=" + (product != null ? product.getName() : "null") +
+                ", cartId=" + (cart != null ? cart.getId() : "null") +
+                '}';
+    }
 }

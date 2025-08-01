@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import techno_express.backend.dto.ProductDto;
-import techno_express.backend.entity.Product;
 import techno_express.backend.service.ProductService;
 import techno_express.backend.util.ResponseBuilder;
 
@@ -23,41 +22,41 @@ public class ProductsController {
     private ProductService productService;
 
     @GetMapping(path = {"/", ""})
-    public ResponseEntity<?> getAllProducts(@RequestAttribute("request_id") String request_id,
-                                            HttpServletRequest request){
-        logger.info(request_id + " - inicio de getAllProducts");
-        List<ProductDto> products = productService.getAllProducts(request_id);
-        logger.info(request_id + " - fin de getAllProducts");
+    public ResponseEntity<?> get_all_products(@RequestAttribute("request_id") String request_id,
+                                              HttpServletRequest request){
+        logger.info(request_id + " - inicio de get_all_products");
+        List<ProductDto> products = productService.get_all_products(request_id);
+        logger.info(request_id + " - fin de get_all_products");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, products);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getProductById(@PathVariable Long id,
-                                            @RequestAttribute("request_id") String request_id,
-                                            HttpServletRequest request){
-        logger.info(request_id + " - inicio de getProductById");
-        ProductDto product = productService.getProductById(request_id, id);
-        logger.info(request_id + " - fin de getProductById");
+    public ResponseEntity<?> get_product_by_id(@PathVariable Long id,
+                                               @RequestAttribute("request_id") String request_id,
+                                               HttpServletRequest request){
+        logger.info(request_id + " - inicio de get_product_by_id");
+        ProductDto product = productService.get_product_by_id(request_id, id);
+        logger.info(request_id + " - fin de get_product_by_id");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, product);
     }
 
     @PostMapping(path = {"/", ""})
-    public ResponseEntity<?> createProduct(@RequestAttribute("request_id") String request_id,
-                                           HttpServletRequest request,
-                                           @RequestBody ProductDto productDto){
-        logger.info(request_id + " - inicio de createProduct");
-        productService.createProduct(request_id, productDto);
-        logger.info(request_id + " - fin de createProduct");
+    public ResponseEntity<?> add_product(@RequestAttribute("request_id") String request_id,
+                                         HttpServletRequest request,
+                                         @RequestBody ProductDto product_dto){
+        logger.info(request_id + " - inicio de add_product");
+        productService.add_product(request_id, product_dto);
+        logger.info(request_id + " - fin de add_product");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
 
     @PutMapping(path = {"/", ""})
-    public ResponseEntity<?> updateProduct(@RequestAttribute("request_id") String request_id,
-                                           HttpServletRequest request,
-                                           @RequestBody ProductDto productDto){
-        logger.info(request_id + " - inicio de updateProduct");
-        productService.updateProduct(request_id, productDto);
-        logger.info(request_id + " - fin de updateProduct");
+    public ResponseEntity<?> update_product(@RequestAttribute("request_id") String request_id,
+                                            HttpServletRequest request,
+                                            @RequestBody ProductDto product_dto){
+        logger.info(request_id + " - inicio de update_product");
+        productService.update_product(request_id, product_dto);
+        logger.info(request_id + " - fin de update_product");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
 }

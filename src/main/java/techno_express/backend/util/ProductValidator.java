@@ -27,7 +27,7 @@ public class ProductValidator {
         return s == null || s.trim().isEmpty();
     }
 
-    public User validateProductDto(String requestId, ProductDto dto) {
+    public User validate_product_dto(String request_id, ProductDto dto) {
         String name = dto.getName();
         String description = dto.getDescription();
         Double price = dto.getPrice();
@@ -36,51 +36,51 @@ public class ProductValidator {
         String category = dto.getCategory();
         Long seller = dto.getSeller();
 
-        logger.info(requestId + " - validando parámetros recibidos...");
+        logger.info(request_id + " - validando parámetros recibidos...");
         if (isBlank(name)) {
-            logger.error(requestId + " - no enviaron nombre del producto");
+            logger.error(request_id + " - no enviaron nombre del producto");
             throw new ProductException.InvalidData();
         }
 
         if (isBlank(description)) {
-            logger.error(requestId + " - no enviaron descripción del producto");
+            logger.error(request_id + " - no enviaron descripción del producto");
             throw new ProductException.InvalidData();
         }
 
         if (price == null || price < 1) {
-            logger.error(requestId + " - el precio enviado ('" + price + "') es menor a 1");
+            logger.error(request_id + " - el precio enviado ('" + price + "') es menor a 1");
             throw new ProductException.InvalidData();
         }
 
         if (stock <= 0) {
-            logger.error(requestId + " - el stock enviado ('" + stock + "') es menor o igual a 0");
+            logger.error(request_id + " - el stock enviado ('" + stock + "') es menor o igual a 0");
             throw new ProductException.InvalidData();
         }
 
         if (isBlank(image)) {
-            logger.error(requestId + " - no enviaron el path de la imagen");
+            logger.error(request_id + " - no enviaron el path de la imagen");
             throw new ProductException.InvalidData();
         }
 
         if (isBlank(category)) {
-            logger.error(requestId + " - no enviaron la categoría del producto");
+            logger.error(request_id + " - no enviaron la categoría del producto");
             throw new ProductException.InvalidData();
         }
 
         if (!VALID_CATEGORIES.contains(category.toLowerCase())) {
-            logger.error(requestId + " - la categoría '" + category + "' es inválida");
+            logger.error(request_id + " - la categoría '" + category + "' es inválida");
             throw new ProductException.InvalidData();
         }
 
         if (seller == null || seller < 1) {
-            logger.error(requestId + " - el id de usuario ('" + seller + "') no es válido");
+            logger.error(request_id + " - el id de usuario ('" + seller + "') no es válido");
             throw new ProductException.InvalidData();
         }
 
-        logger.info(requestId + " - validando que exista algún usuario con el id: '" + seller + "'...");
+        logger.info(request_id + " - validando que exista algún usuario con el id: '" + seller + "'...");
         Optional<User> user = userRepository.findById(seller);
         if (user.isEmpty()) {
-            logger.error(requestId + " - el usuario no existe");
+            logger.error(request_id + " - el usuario no existe");
             throw new UserException.NotFound();
         }
 

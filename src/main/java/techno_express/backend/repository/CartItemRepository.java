@@ -7,18 +7,31 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import techno_express.backend.entity.CartItem;
-import techno_express.backend.entity.UserInformation;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CartItemRepository extends JpaRepository<CartItem, Long> {
     @EntityGraph(attributePaths = {
             "product", "product.seller", "product.seller.role"
     })
-    List<CartItem> findAllByCart_Id(Long cartId);
+    List<CartItem> findAllByCartId(Long cartId);
 
     @Modifying
-    @Query("DELETE FROM cart_items ci WHERE ci.cart.owner = :owner")
-    void deleteByCartOwner(@Param("owner") UserInformation owner);
+    @Query("DELETE FROM cart_items ci WHERE ci.cart.id = :cart_id")
+    void deleteByCartId(@Param("cart_id") Long cart_id);
+
+    @Query("SELECT ci FROM cart_items ci WHERE ci.cart.id = :cart_id AND ci.product.id = :product_id")
+    Optional<CartItem> findByCartIdAndProductId(@Param("cart_id") Long cart_id,
+                                                @Param("product_id") Long product_id);
+
+
+    @Query("SELECT ci.product.id FROM cart_items ci WHERE ci.cart.id = :cart_id")
+    List<Long> findAllItemsIdByCartId(@Param("cart_id") Long cart_id);
+
+    @Modifying
+    @Query("DELETE FROM cart_items ci WHERE ci.cart.id = :cart_id AND ci.product.id NOT IN :productIds")
+    void deleteItemsNotInCurrentList(@Param("cart_id") Long cart_id, @Param("productIds") List<Long> productIds);
+
 }

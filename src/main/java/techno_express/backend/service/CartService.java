@@ -4,16 +4,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 import techno_express.backend.dto.*;
 import techno_express.backend.entity.*;
 import techno_express.backend.exception.CartException;
-import techno_express.backend.exception.UserException;
 import techno_express.backend.repository.*;
+import techno_express.backend.util.CartValidator;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -23,83 +19,19 @@ public class CartService {
     private static final Logger logger = LoggerFactory.getLogger(CartService.class);
 
     @Autowired
-    private CartRepository cartRepository;
-
-    @Autowired
     private CartItemRepository cartItemRepository;
-
-    @Autowired
-    private UserInformationRepository userInformationRepository;
 
     @Autowired
     private ProductRepository productRepository;
 
-    @Transactional
-    public void save_cart(String request_id, CartDto cartDto) {
-        logger.info(request_id + " - validando que exista el usuario id '"+ cartDto.getUser_id() +"'...");
-        Optional<UserInformation> userOptional = userInformationRepository.findById(cartDto.getUser_id());
+    @Autowired
+    private CartValidator cartValidator;
 
-        if (userOptional.isEmpty()) {
-            logger.error(request_id + "- el usuario no existe");
-            throw new UserException.NotFound();
-        }
-
-        logger.info(request_id + " - validando que el usuario no tenga un carrito creado...");
-        Optional<Cart> cartOptional = cartRepository.findByOwner(userOptional.get());
-
-        Cart cart;
-        if (cartOptional.isEmpty()) {
-            logger.info(request_id + " - creando carrito para el usuario...");
-            cart = new Cart();
-            cart.setCreated_on(LocalDateTime.now());
-            cart.setOwner(userOptional.get());
-            cartRepository.save(cart);
-            logger.info(request_id + " - creando items del carrito en la db...");
-        } else {
-            logger.info(request_id + " - eliminando items anteriores del carrito del usuario");
-            cartItemRepository.deleteByCartOwner(userOptional.get());
-            cart = cartOptional.get();
-            logger.info(request_id + " - agregando items del carrito en la db...");
-        }
-
-        for(CartItem item : cartDto.getItems()) {
-            Optional<Product> product = productRepository.findById(item.getId());
-
-            if(product.isPresent()) {
-                CartItem cartItem = new CartItem();
-                cartItem.setCart(cart);
-                cartItem.setQuantity(item.getQuantity());
-                cartItem.setProduct(product.get());
-
-                cartItemRepository.save(cartItem);
-            } else{
-                logger.info(request_id + " - el producto '"+item.getId()+"' no existe");
-            }
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public HashMap<String, Object> load_cart(String request_id, CartDto cartDto) {
-        logger.info(request_id + " - validando que exista el usuario id '"+ cartDto.getUser_id() +"'...");
-        Optional<UserInformation> userOptional = userInformationRepository.findById(cartDto.getUser_id());
-
-        if (userOptional.isEmpty()) {
-            logger.error(request_id + "- el usuario no existe");
-            throw new UserException.NotFound();
-        }
-
-        logger.info(request_id + " - validando que el usuario tenga un carrito creado...");
-        Optional<Cart> cartOptional = cartRepository.findByOwner(userOptional.get());
-
-        if (cartOptional.isEmpty()) {
-            logger.info(request_id + " - el usuario no tiene carrito");
-            throw new CartException.NotExists();
-        }
+    public HashMap<String, Object> load_cart(String request_id, CartDto cart_dto, Long cart_id) {
+        Cart cart = cartValidator.validate_cart_dto(request_id, cart_dto, cart_id, false);
 
         logger.info(request_id + " - generando respuesta con el carrito del usuario...");
-        List<CartItem> cartItems = cartItemRepository.findAllByCart_Id(cartOptional.get().getId());
-
-        HashMap<String, Object> cart_data = new HashMap<>();
+        List<CartItem> cartItems = cartItemRepository.findAllByCartId(cart.getId());
         List<Map<String, Object>> cartItemDataList = new ArrayList<>();
 
         for (CartItem item : cartItems) {
@@ -115,15 +47,80 @@ public class CartService {
                 itemData.put("image", product.getImage());
                 itemData.put("price", product.getPrice());
                 itemData.put("quantity", item.getQuantity());
+                itemData.put("seller_id", product.getSeller().getId());
 
                 cartItemDataList.add(itemData);
             } else {
-                logger.info(request_id + " - El producto '" + item.getProduct().getId() + "' no existe");
+                logger.info(request_id + " - El producto '" + item.getProduct().getId() + "' no existe. CartItem: "+ item.toString());
             }
         }
 
+        HashMap<String, Object> cart_data = new HashMap<>();
         cart_data.put("cart_items", cartItemDataList);
         return cart_data;
     }
 
+    @Transactional
+    public void save_cart(String request_id, CartDto cart_dto, Long cart_id) {
+        Cart cart = cartValidator.validate_cart_dto(request_id, cart_dto, cart_id, true);
+        ArrayList<CartItem> cart_items = cart_dto.getItems();
+
+        if(cart.getId() != cart_id){
+            cart_id = cart.getId();
+        }
+
+        if(cart_items == null){
+            logger.error(request_id + " - no enviaron el campo 'items' con el carrito del usuario.");
+            throw new CartException.InvalidData();
+        }
+
+        if(cart_items.isEmpty()) {
+            logger.info(request_id + " - como no se envio ningun item en el request, se eliminara el carrito del usuario.");
+            cartItemRepository.deleteByCartId(cart_id);
+            return;
+        }
+
+        for(CartItem item : cart_items) {
+            Optional<Product> product = productRepository.findById(item.getId());
+
+            if(product.isPresent()) {
+                Optional<CartItem> cart_item = cartItemRepository.findByCartIdAndProductId(cart_id, item.getId());
+                CartItem checkout_item;
+
+                if(cart_item.isPresent()) {
+                    checkout_item = cart_item.get();
+                    checkout_item.setUpdated_on(LocalDateTime.now());
+                } else{
+                    checkout_item = new CartItem();
+                    checkout_item.setCart(cart);
+                    checkout_item.setProduct(product.get());
+                    checkout_item.setAdded_on(LocalDateTime.now());
+                }
+
+                checkout_item.setQuantity(item.getQuantity());
+                cartItemRepository.save(checkout_item);
+            } else{
+                logger.info(request_id + " - el producto '"+item.getId()+"' no existe. CartItem: "+ item.toString());
+            }
+        }
+
+        List<Long> existingCartItems = cartItemRepository.findAllItemsIdByCartId(cart_id);
+
+        if(!existingCartItems.isEmpty()) {
+            List<Long> currentProductIds = cart_items.stream()
+                    .map(cartItem -> cartItem.getProduct().getId())
+                    .toList();
+
+            List<Long> itemsToRemove = existingCartItems.stream()
+                    .filter(cartItem -> !currentProductIds.contains(cartItem))
+                    .toList();
+
+            for (Long itemToRemove : itemsToRemove) {
+                CartItem item = new CartItem();
+                item.setId(itemToRemove);
+                cartItemRepository.delete(item);
+                logger.info(request_id + " - El producto '" + itemToRemove + "' ha sido eliminado del carrito.");
+            }
+        }
+    }
 }

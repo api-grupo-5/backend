@@ -10,7 +10,6 @@ import techno_express.backend.entity.Product;
 import techno_express.backend.entity.User;
 import techno_express.backend.repository.ProductRepository;
 import techno_express.backend.exception.ProductException;
-import techno_express.backend.repository.UserRepository;
 import techno_express.backend.util.ProductValidator;
 
 import java.util.List;
@@ -27,7 +26,7 @@ public class ProductService {
     @Autowired
     private ProductValidator productValidator;
 
-    public List<ProductDto> getAllProducts(String request_id) {
+    public List<ProductDto> get_all_products(String request_id) {
         logger.info(request_id + " - obteniendo todos los productos...");
         List<Product> products = productRepository.findAll();
 
@@ -36,7 +35,7 @@ public class ProductService {
                 .toList();
     }
 
-    public ProductDto getProductById(String request_id, Long id) {
+    public ProductDto get_product_by_id(String request_id, Long id) {
         logger.info(request_id + " - obteniendo producto con el id: '" + id + "'...");
         Optional<Product> product = productRepository.findById(id);
 
@@ -48,22 +47,22 @@ public class ProductService {
         return new ProductDto(product.get());
     }
 
-    public void createProduct(String request_id, ProductDto productDto) {
-        User seller = productValidator.validateProductDto(request_id, productDto);
+    public void add_product(String request_id, ProductDto product_dto) {
+        User seller = productValidator.validate_product_dto(request_id, product_dto);
 
-        logger.info(request_id + " - creando el producto: '" + productDto.getName() + "'...");
+        logger.info(request_id + " - creando el producto: '" + product_dto.getName() + "'...");
         Product newProduct = new Product();
-        newProduct = productValidator.setProductData(newProduct, productDto, seller);
+        newProduct = productValidator.setProductData(newProduct, product_dto, seller);
 
         logger.info(request_id + " - guardando producto...");
         productRepository.save(newProduct);
     }
 
-    public void updateProduct(String request_id, ProductDto productDto) {
-        User seller = productValidator.validateProductDto(request_id, productDto);
+    public void update_product(String request_id, ProductDto product_dto) {
+        User seller = productValidator.validate_product_dto(request_id, product_dto);
 
-        logger.info(request_id + " - validando que exista el producto con el id: '" + productDto.getId() + "' en la base de datos...");
-        Optional<Product> product = productRepository.findById(productDto.getId());
+        logger.info(request_id + " - validando que exista el producto con el id: '" + product_dto.getId() + "' en la base de datos...");
+        Optional<Product> product = productRepository.findById(product_dto.getId());
 
         if (product.isEmpty()){
             logger.error(request_id + " - el producto no existe");
@@ -71,7 +70,7 @@ public class ProductService {
         }
 
         logger.info(request_id + " - actualizando el producto...");
-        Product updatedProduct = productValidator.setProductData(product.get(), productDto, seller);
+        Product updatedProduct = productValidator.setProductData(product.get(), product_dto, seller);
 
         logger.info(request_id + " - guardando cambios del producto...");
         productRepository.save(updatedProduct);

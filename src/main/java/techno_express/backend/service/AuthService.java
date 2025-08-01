@@ -12,20 +12,14 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import techno_express.backend.dto.*;
-import techno_express.backend.entity.OtpToken;
-import techno_express.backend.entity.Role;
-import techno_express.backend.entity.User;
+import techno_express.backend.entity.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.UUID;
 
-import techno_express.backend.entity.UserInformation;
-import techno_express.backend.repository.OtpTokenRepository;
-import techno_express.backend.repository.RoleRepository;
-import techno_express.backend.repository.UserRepository;
-import techno_express.backend.repository.UserInformationRepository;
+import techno_express.backend.repository.*;
 import techno_express.backend.exception.UserException;
 
 @Service
@@ -40,6 +34,9 @@ public class AuthService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private CartRepository cartRepository;
 
     @Autowired
     private OtpTokenRepository otpTokenRepository;
@@ -107,7 +104,7 @@ public class AuthService {
         user.setRegistered_on(LocalDateTime.now());
         user.setRole(userRole);
 
-        logger.info(request_id + " - guardando usuario en la tabla 'accounts'..." );
+        logger.info(request_id + " - guardando usuario..." );
         try{
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
@@ -138,6 +135,11 @@ public class AuthService {
             logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts_information': " + e);
             throw e;
         }
+
+        logger.info(request_id + " - creandole un carrito vacio...");
+        Cart cart = new Cart();
+        cart.setCreated_on(LocalDateTime.now());
+        cart.setOwner(userInformation);
     }
 
     public HashMap<String, Object> login(String request_id, AuthRequestDto authRequestDto) {
