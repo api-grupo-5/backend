@@ -1,0 +1,33 @@
+package techno_express.backend.entity;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.persistence.*;
+import lombok.Data;
+
+import java.util.List;
+
+@Data
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@Entity(name="users_information")
+public class UserInformation {
+    @Id
+    private Long id;
+
+    @OneToOne
+    @MapsId
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    private String first_name;
+    private String last_name;
+    private int personal_id;
+    private String phone;
+    private String address;
+    private String email;
+
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<Order> orders; // historial de pedidos
+
+    @OneToOne(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private Cart current_cart_id;
+}

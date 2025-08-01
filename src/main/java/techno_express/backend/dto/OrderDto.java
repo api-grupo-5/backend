@@ -1,0 +1,11 @@
+package techno_express.backend.dto;
+
+import lombok.Data;
+import techno_express.backend.entity.OrderItem;
+import java.util.List;
+
+@Data
+public class OrderDto {
+    private List<OrderItem> items;
+    private double amount;
+}
