@@ -13,6 +13,7 @@ import techno_express.backend.repository.CartRepository;
 import techno_express.backend.repository.UserInformationRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -53,28 +54,32 @@ public class CartValidator {
 
         logger.info(request_id + " - validando que exista el carrito id: '{}'...", cart_id);
         Optional<Cart> cartOptional = cartRepository.findById(cart_id);
+
         if(!create){
-            if (cartOptional.isEmpty()) {
+            if(cartOptional.isEmpty()) {
                 logger.error(request_id + " - el carrito no existe");
                 throw new CartException.NotExists();
+            } else{
+                logger.info(request_id + " - validando que el id del carrito coincida con el del usuario...");
+                if (!cartOptional.get().getOwner().getId().equals(dto.getUser_id())) {
+                    logger.error(request_id + " - el carrito no pertenece al usuario");
+                    throw new CartException.InvalidData();
+                }
             }
-
-            logger.info(request_id + " - validando que el id del carrito coincida con el del usuario...");
-            if (!cartOptional.get().getOwner().getId().equals(dto.getUser_id())) {
-                logger.error(request_id + " - el carrito no pertenece al usuario");
-                throw new CartException.InvalidData();
-            }
-        } else {
-            logger.info(request_id + " - se solicito validar si el usuario ya tenia un carrito...");
+        } else{
+            logger.info(request_id + " - se solicito validar si hay que crearle un carrito al usuario...");
             Optional<Cart> cart = cartRepository.findByOwner(userOptional.get());
             Cart output_cart;
-            
+
             if (cart.isEmpty()) {
+                logger.info(request_id + " - el usuario no tiene carrito, asi que se le creara uno...");
                 output_cart = new Cart();
                 output_cart.setCreated_on(LocalDateTime.now());
                 output_cart.setOwner(userOptional.get());
+                logger.info(request_id + " - guardando carrito...");
                 cartRepository.save(output_cart);
             } else{
+                logger.info(request_id + " - el usuario ya tiene carrito actualmente, se usara ese...");
                 output_cart = cart.get();
             }
 

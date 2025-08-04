@@ -65,7 +65,7 @@ public class CartService {
         Cart cart = cartValidator.validate_cart_dto(request_id, cart_dto, cart_id, true);
         ArrayList<CartItem> cart_items = cart_dto.getItems();
 
-        if(cart.getId() != cart_id){
+        if(!Objects.equals(cart.getId(), cart_id)){
             cart_id = cart.getId();
         }
 
@@ -80,17 +80,38 @@ public class CartService {
             return;
         }
 
+        logger.info(request_id + " - validando si hay que eliminar articulos viejos...");
+        List<Long> existingCartItems = cartItemRepository.findAllProductIdsByCartId(cart_id);
+
+        if(!existingCartItems.isEmpty()) {
+            List<Long> currentProductIds = cart_items.stream()
+                    .map(CartItem::getId)
+                    .filter(Objects::nonNull) // para evitar nulls si son nuevos
+                    .toList();
+
+            List<Long> itemsToRemove = existingCartItems.stream()
+                    .filter(productId -> !currentProductIds.contains(productId))
+                    .toList();
+
+            logger.info(request_id + " - eliminando articulos viejos...");
+            for (Long itemToRemove : itemsToRemove) {
+                logger.info(itemToRemove.toString());
+                cartItemRepository.deleteByCartIdAndProductId(cart_id, itemToRemove);
+            }
+        }
+
+        logger.info(request_id + " - guardando y actualizando los articulos del carrito del usuario...");
         for(CartItem item : cart_items) {
             Optional<Product> product = productRepository.findById(item.getId());
 
-            if(product.isPresent()) {
+            if (product.isPresent()) {
                 Optional<CartItem> cart_item = cartItemRepository.findByCartIdAndProductId(cart_id, item.getId());
                 CartItem checkout_item;
 
-                if(cart_item.isPresent()) {
+                if (cart_item.isPresent()) {
                     checkout_item = cart_item.get();
                     checkout_item.setUpdated_on(LocalDateTime.now());
-                } else{
+                } else {
                     checkout_item = new CartItem();
                     checkout_item.setCart(cart);
                     checkout_item.setProduct(product.get());
@@ -99,28 +120,10 @@ public class CartService {
 
                 checkout_item.setQuantity(item.getQuantity());
                 cartItemRepository.save(checkout_item);
-            } else{
-                logger.info(request_id + " - el producto '"+item.getId()+"' no existe. CartItem: "+ item.toString());
+            } else {
+                logger.info(request_id + " - el producto '" + item.getId() + "' no existe. CartItem: " + item.toString());
             }
         }
 
-        List<Long> existingCartItems = cartItemRepository.findAllItemsIdByCartId(cart_id);
-
-        if(!existingCartItems.isEmpty()) {
-            List<Long> currentProductIds = cart_items.stream()
-                    .map(cartItem -> cartItem.getProduct().getId())
-                    .toList();
-
-            List<Long> itemsToRemove = existingCartItems.stream()
-                    .filter(cartItem -> !currentProductIds.contains(cartItem))
-                    .toList();
-
-            for (Long itemToRemove : itemsToRemove) {
-                CartItem item = new CartItem();
-                item.setId(itemToRemove);
-                cartItemRepository.delete(item);
-                logger.info(request_id + " - El producto '" + itemToRemove + "' ha sido eliminado del carrito.");
-            }
-        }
     }
 }
