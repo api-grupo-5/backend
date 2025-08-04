@@ -29,5 +29,5 @@ public class OrderItem {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "seller_id")
-    private UserInformation seller;
+    private User seller;
 }

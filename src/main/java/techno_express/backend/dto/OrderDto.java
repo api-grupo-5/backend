@@ -8,4 +8,6 @@ import java.util.List;
 public class OrderDto {
     private List<OrderItem> items;
     private double amount;
+    private Long user_id;
+    private Long cart_id;
 }
