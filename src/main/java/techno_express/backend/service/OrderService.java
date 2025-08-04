@@ -93,7 +93,6 @@ public class OrderService {
         Order order = new Order();
         order.setAmount(price);
         order.setDate(LocalDateTime.now());
-        order.setCart(using_cart);
         order.setCustomer(using_cart.getOwner());
         orderRepository.save(order);
 

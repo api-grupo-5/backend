@@ -23,10 +23,6 @@ public class Order {
     @JoinColumn(name = "customer_id")
     private UserInformation customer;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "cart_id")
-    private Cart cart;
-
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<OrderItem> items = new ArrayList<>();
 }
