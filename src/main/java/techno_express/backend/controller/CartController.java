@@ -46,4 +46,16 @@ public class CartController {
         logger.info(request_id + " - fin de save_cart");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete_cart(@RequestAttribute("request_id") String request_id,
+                                         @RequestBody CartDto cartDto,
+                                         @PathVariable Long id,
+                                         HttpServletRequest request) {
+
+        logger.info(request_id + " - inicio de delete_cart");
+        cartService.delete_cart(request_id, cartDto, id);
+        logger.info(request_id + " - fin de delete_cart");
+        return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
+    }
 }

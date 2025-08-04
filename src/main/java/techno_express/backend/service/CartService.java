@@ -19,6 +19,9 @@ public class CartService {
     private static final Logger logger = LoggerFactory.getLogger(CartService.class);
 
     @Autowired
+    private CartRepository cartRepository;
+
+    @Autowired
     private CartItemRepository cartItemRepository;
 
     @Autowired
@@ -124,6 +127,14 @@ public class CartService {
                 logger.info(request_id + " - el producto '" + item.getId() + "' no existe. CartItem: " + item.toString());
             }
         }
+    }
 
+    @Transactional
+    public void delete_cart(String request_id, CartDto cart_dto, Long cart_id) {
+        cartValidator.validate_cart_dto(request_id, cart_dto, cart_id, false);
+        logger.info(request_id + " - eliminando el carrito perteneciente al usuario...");
+        cartRepository.deleteCartId(cart_id);
+        cartItemRepository.deleteByCartId(cart_id);
+        logger.info(request_id + " - carrito eliminado correctamente");
     }
 }
