@@ -8,8 +8,8 @@ public abstract class CartException extends GenericException {
     }
 
     // Subclases internas
-    public static class NotExists extends CartException {
-        public NotExists() {
+    public static class NotFound extends CartException {
+        public NotFound() {
             super(HttpStatus.CONFLICT, "0201", "El carrito no existe");
         }
     }
