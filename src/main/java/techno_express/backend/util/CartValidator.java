@@ -13,7 +13,6 @@ import techno_express.backend.repository.CartRepository;
 import techno_express.backend.repository.UserInformationRepository;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -39,7 +38,7 @@ public class CartValidator {
             throw new CartException.InvalidData();
         }
 
-        if (user_id == null || user_id < 1) {
+        if (user_id < 1) {
             logger.error(request_id + " - el id de usuario ('" + user_id + "') no es válido");
             throw new CartException.InvalidData();
         }
@@ -58,7 +57,7 @@ public class CartValidator {
         if(!create){
             if(cartOptional.isEmpty()) {
                 logger.error(request_id + " - el carrito no existe");
-                throw new CartException.NotExists();
+                throw new CartException.NotFound();
             } else{
                 logger.info(request_id + " - validando que el id del carrito coincida con el del usuario...");
                 if (!cartOptional.get().getOwner().getId().equals(dto.getUser_id())) {
