@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import techno_express.backend.context.RequestContext;
 import techno_express.backend.dto.ProductDto;
 import techno_express.backend.service.ProductService;
 import techno_express.backend.util.ResponseBuilder;
@@ -22,8 +23,9 @@ public class ProductsController {
     private ProductService productService;
 
     @GetMapping(path = {"/", ""})
-    public ResponseEntity<?> get_all_products(@RequestAttribute("request_id") String request_id,
-                                              HttpServletRequest request){
+    public ResponseEntity<?> get_all_products(HttpServletRequest request){
+        String request_id = RequestContext.getRequestId();
+
         logger.info(request_id + " - inicio de get_all_products");
         List<ProductDto> products = productService.get_all_products(request_id);
         logger.info(request_id + " - fin de get_all_products");
@@ -32,8 +34,9 @@ public class ProductsController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> get_product_by_id(@PathVariable Long id,
-                                               @RequestAttribute("request_id") String request_id,
                                                HttpServletRequest request){
+        String request_id = RequestContext.getRequestId();
+
         logger.info(request_id + " - inicio de get_product_by_id");
         ProductDto product = productService.get_product_by_id(request_id, id);
         logger.info(request_id + " - fin de get_product_by_id");
@@ -41,9 +44,10 @@ public class ProductsController {
     }
 
     @PostMapping(path = {"/", ""})
-    public ResponseEntity<?> add_product(@RequestAttribute("request_id") String request_id,
-                                         HttpServletRequest request,
+    public ResponseEntity<?> add_product(HttpServletRequest request,
                                          @RequestBody ProductDto product_dto){
+        String request_id = RequestContext.getRequestId();
+
         logger.info(request_id + " - inicio de add_product");
         productService.add_product(request_id, product_dto);
         logger.info(request_id + " - fin de add_product");
@@ -51,9 +55,11 @@ public class ProductsController {
     }
 
     @PutMapping(path = {"/", ""})
-    public ResponseEntity<?> update_product(@RequestAttribute("request_id") String request_id,
-                                            HttpServletRequest request,
+    public ResponseEntity<?> update_product(HttpServletRequest request,
                                             @RequestBody ProductDto product_dto){
+
+        String request_id = RequestContext.getRequestId();
+
         logger.info(request_id + " - inicio de update_product");
         productService.update_product(request_id, product_dto);
         logger.info(request_id + " - fin de update_product");

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import techno_express.backend.context.RequestContext;
 import techno_express.backend.dto.OrderItemsUserResponseDto;
 import techno_express.backend.dto.OrderRequestDto;
 import techno_express.backend.dto.OrderUserResponseDto;
@@ -27,9 +28,10 @@ public class OrderController {
     private OrderService orderService;
 
     @PostMapping(path = {"/", ""})
-    public ResponseEntity<?> create_order(@RequestAttribute("request_id") String request_id,
-                                          @RequestBody OrderRequestDto orderRequestDto,
+    public ResponseEntity<?> create_order(@RequestBody OrderRequestDto orderRequestDto,
                                           HttpServletRequest request) {
+        String request_id = RequestContext.getRequestId();
+
         logger.info(request_id + " - inicio de create_order");
         orderService.create_order(request_id, orderRequestDto);
         logger.info(request_id + " - fin de create_order");
@@ -37,9 +39,10 @@ public class OrderController {
     }
 
     @GetMapping(path = {"/get-user-orders", ""})
-    public ResponseEntity<?> get_order_by_user_id(@RequestAttribute("request_id") String request_id,
-                                                  @RequestBody OrderRequestDto orderRequestDto,
+    public ResponseEntity<?> get_order_by_user_id(@RequestBody OrderRequestDto orderRequestDto,
                                                   HttpServletRequest request) {
+        String request_id = RequestContext.getRequestId();
+
         logger.info(request_id + " - inicio de get_order_by_user_id");
         Map<Long, OrderUserResponseDto> orders = orderService.get_order_by_user_id(request_id, orderRequestDto);
         logger.info(request_id + " - fin de get_order_by_user_id");

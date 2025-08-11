@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import techno_express.backend.context.RequestContext;
 import techno_express.backend.entity.User;
 import techno_express.backend.exception.UserException;
 import techno_express.backend.repository.UserRepository;
@@ -26,15 +27,16 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) {
         try{
-            logger.info("UserDetailsServiceImpl - buscando usuario con email: " + email);
+            String request_id = RequestContext.getRequestId();
+            logger.info(request_id + " - buscando usuario con email: " + email);
             Optional<User> optionalUser = userRepository.findByEmail(email);
 
             if (optionalUser.isEmpty()) {
-                throw new UsernameNotFoundException("Usuario no encontrado: " + email);
+                throw new UsernameNotFoundException(request_id + " - usuario no encontrado: " + email);
             }
 
             User user = optionalUser.get();
-            logger.info("UserDetailsServiceImpl - usuario encontrado");
+            logger.info(request_id + " - usuario encontrado");
             return new org.springframework.security.core.userdetails.User(
                     user.getEmail(),
                     user.getPassword(),

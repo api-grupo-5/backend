@@ -134,7 +134,8 @@ public class CartService {
                 checkout_item.setQuantity(item.getQuantity());
                 cartItemRepository.save(checkout_item);
             } else {
-                logger.info(request_id + " - el producto '" + item.getId() + "' no existe. CartItem: " + item.toString());
+                logger.info(request_id + " - el producto id '" + item.getId() + "' no existe. CartItem: " + item.toString());
+                throw new CartException.InvalidData();
             }
         }
     }

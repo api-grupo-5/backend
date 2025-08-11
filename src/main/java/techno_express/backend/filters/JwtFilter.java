@@ -16,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
+import techno_express.backend.context.RequestContext;
 import techno_express.backend.service.JwtService;
 import techno_express.backend.service.UserDetailsServiceImpl;
 import techno_express.backend.util.ResponseBuilder;
@@ -65,6 +66,14 @@ public class JwtFilter extends OncePerRequestFilter {
             username = jwtService.extractUsername(jwt);
         }
 
+        String request_id = request.getHeader("request_id");
+        if(request_id == null || request_id.isEmpty()) {
+            logger.error("Se envio un request sin request_id al emdpoint: " + path);
+            return;
+        }
+        RequestContext.setRequestId(request_id);
+
+        logger.info("-----------  inicio de request " + request_id + " ----------- ");
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsServiceImpl.loadUserByUsername(username);
             if (jwtService.validateToken(jwt, userDetails)) {
@@ -72,11 +81,11 @@ public class JwtFilter extends OncePerRequestFilter {
                         userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             } else {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido o expirado");
+                ResponseBuilder.writeResponse(response, HttpStatus.UNAUTHORIZED, "0403", "Token inválido o expirado", request);
                 return;
             }
         } else if (username == null) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Falta el token de autenticación");
+            ResponseBuilder.writeResponse(response, HttpStatus.UNAUTHORIZED, "0401", "Token de autenticación invalido", request);
             return;
         }
 

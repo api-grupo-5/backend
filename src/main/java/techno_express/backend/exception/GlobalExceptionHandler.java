@@ -32,6 +32,12 @@ public class GlobalExceptionHandler {
         return ResponseBuilder.buildResponse(ex.getStatus(), ex.getCode(), ex.getMessage(), request);
     }
 
+    @ExceptionHandler(OrderException.class)
+    public ResponseEntity<Object> handleOrderException(OrderException ex, HttpServletRequest request) {
+        logger.error("Order Exception: ", ex);
+        return ResponseBuilder.buildResponse(ex.getStatus(), ex.getCode(), ex.getMessage(), request);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Object> handleDataIntegrityViolation(Exception ex, HttpServletRequest request) {
         logger.error("Data Integrity Violation: ", ex);

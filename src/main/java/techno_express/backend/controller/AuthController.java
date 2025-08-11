@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import techno_express.backend.context.RequestContext;
 import techno_express.backend.dto.*;
 import techno_express.backend.service.AuthService;
 import techno_express.backend.util.ResponseBuilder;
@@ -21,9 +22,9 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestAttribute("request_id") String request_id,
-                                      @RequestBody AuthRegisterRequestDto authRegisterRequestDto,
+    public ResponseEntity<?> register(@RequestBody AuthRegisterRequestDto authRegisterRequestDto,
                                       HttpServletRequest request) {
+        String request_id = RequestContext.getRequestId();
 
         logger.info(request_id + " - inicio de register");
         authService.register(request_id, authRegisterRequestDto);
@@ -32,9 +33,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestAttribute("request_id") String request_id,
-                                   @RequestBody AuthLoginRequestDto authLoginRequestDto,
+    public ResponseEntity<?> login(@RequestBody AuthLoginRequestDto authLoginRequestDto,
                                    HttpServletRequest request) {
+        String request_id = RequestContext.getRequestId();
 
         logger.info(request_id + " - inicio de login");
         AuthLoginResponseDto result = authService.login(request_id, authLoginRequestDto);
@@ -43,9 +44,10 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<Object> forgot_password(@RequestAttribute("request_id") String request_id,
-                                                  @RequestBody AuthForgotPasswordRequestDto authForgotPasswordRequestDto,
+    public ResponseEntity<Object> forgot_password(@RequestBody AuthForgotPasswordRequestDto authForgotPasswordRequestDto,
                                                   HttpServletRequest request) {
+        String request_id = RequestContext.getRequestId();
+
         logger.info(request_id + " - inicio de forgot_password");
         authService.forgot_password(request_id, authForgotPasswordRequestDto);
         logger.info(request_id + " - fin de forgot_password");
@@ -53,9 +55,9 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<Object> reset_password(@RequestAttribute("request_id") String request_id,
-                                                 @RequestBody AuthResetPassowrdRequestDto authResetPassowrdRequestDto,
+    public ResponseEntity<Object> reset_password(@RequestBody AuthResetPassowrdRequestDto authResetPassowrdRequestDto,
                                                  HttpServletRequest request) {
+        String request_id = RequestContext.getRequestId();
 
         logger.info(request_id + " - inicio de reset_password");
         authService.reset_password(request_id, authResetPassowrdRequestDto);

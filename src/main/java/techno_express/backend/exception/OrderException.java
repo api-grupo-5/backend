@@ -10,7 +10,7 @@ public abstract class OrderException extends GenericException {
     // Subclases internas
     public static class NotFound extends OrderException {
         public NotFound() {
-            super(HttpStatus.CONFLICT, "0201", "La orden no existe");
+            super(HttpStatus.NOT_FOUND, "0201", "La orden no fue encontrada");
         }
     }
 

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import techno_express.backend.context.RequestContext;
 import techno_express.backend.dto.*;
 import techno_express.backend.service.CartService;
 import techno_express.backend.util.ResponseBuilder;
@@ -24,10 +25,10 @@ public class CartController {
     private CartService cartService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> load_cart(@RequestAttribute("request_id") String request_id,
-                                       @RequestBody CartDto cartDto,
+    public ResponseEntity<?> load_cart(@RequestBody CartDto cartDto,
                                        @PathVariable Long id,
                                        HttpServletRequest request) {
+        String request_id = RequestContext.getRequestId();
 
         logger.info(request_id + " - inicio de load_cart");
         HashMap<String, Object> result = cartService.load_cart(request_id, cartDto, id);
@@ -36,11 +37,11 @@ public class CartController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> save_cart(@RequestAttribute("request_id") String request_id,
-                                       @RequestBody CartDto cart_dto,
+    public ResponseEntity<?> save_cart(@RequestBody CartDto cart_dto,
                                        @PathVariable Long id,
                                        HttpServletRequest request) {
 
+        String request_id = RequestContext.getRequestId();
         logger.info(request_id + " - inicio de save_cart");
         cartService.save_cart(request_id, cart_dto, id);
         logger.info(request_id + " - fin de save_cart");
@@ -48,11 +49,11 @@ public class CartController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete_cart(@RequestAttribute("request_id") String request_id,
-                                         @RequestBody CartDto cartDto,
+    public ResponseEntity<?> delete_cart(@RequestBody CartDto cartDto,
                                          @PathVariable Long id,
                                          HttpServletRequest request) {
 
+        String request_id = RequestContext.getRequestId();
         logger.info(request_id + " - inicio de delete_cart");
         cartService.delete_cart(request_id, cartDto, id);
         logger.info(request_id + " - fin de delete_cart");

@@ -10,7 +10,7 @@ public abstract class CartException extends GenericException {
     // Subclases internas
     public static class NotFound extends CartException {
         public NotFound() {
-            super(HttpStatus.CONFLICT, "0201", "El carrito no existe");
+            super(HttpStatus.NOT_FOUND, "0201", "El carrito no fue encontrado");
         }
     }
 
