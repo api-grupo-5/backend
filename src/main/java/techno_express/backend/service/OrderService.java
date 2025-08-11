@@ -90,7 +90,7 @@ public class OrderService {
         Cart using_cart = cart.get();
         if(!using_cart.getOwner().getId().equals(user_id)){
             logger.error(request_id + " - el carrito id '{}' no pertenece al usuario id '{}'", using_cart.getId(), user_id);
-            throw new UserException.NotFound();
+            throw new CartException.InvalidData();
         }
 
         logger.info(request_id + " - creando orden...");
