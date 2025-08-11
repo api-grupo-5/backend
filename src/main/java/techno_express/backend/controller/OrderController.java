@@ -41,7 +41,7 @@ public class OrderController {
                                                   @RequestBody OrderRequestDto orderRequestDto,
                                                   HttpServletRequest request) {
         logger.info(request_id + " - inicio de get_order_by_user_id");
-        Map<Long, List<OrderItemsUserResponseDto>> orders = orderService.get_order_by_user_id(request_id, orderRequestDto);
+        Map<Long, OrderUserResponseDto> orders = orderService.get_order_by_user_id(request_id, orderRequestDto);
         logger.info(request_id + " - fin de get_order_by_user_id");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, orders);
     }

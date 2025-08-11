@@ -8,7 +8,6 @@ import java.util.List;
 
 @Data
 public class OrderUserResponseDto {
-    private Long order_id;
     private double amount;
     private LocalDateTime date;
     private List<OrderItemsUserResponseDto> order_items;

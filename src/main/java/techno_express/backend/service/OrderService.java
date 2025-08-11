@@ -116,7 +116,7 @@ public class OrderService {
         }
     }
 
-    public Map<Long, List<OrderItemsUserResponseDto>> get_order_by_user_id(String request_id, OrderRequestDto orderRequestDto) {
+    public Map<Long, OrderUserResponseDto> get_order_by_user_id(String request_id, OrderRequestDto orderRequestDto) {
         Long user_id = orderRequestDto.getUser_id();
 
         logger.info(request_id + " - validando interfaces recibidas...");
@@ -141,11 +141,10 @@ public class OrderService {
             throw new OrderException.NotFound();
         }
 
-        Map<Long, List<OrderItemsUserResponseDto>> orderItemsMap = new HashMap<>();
+        Map<Long, OrderUserResponseDto> orderItemsMap = new HashMap<>();
         for (Order order : orders) {
             Long order_id = order.getId();
             OrderUserResponseDto orderUserResponseDto = new OrderUserResponseDto();
-            orderUserResponseDto.setOrder_id(order_id);
             orderUserResponseDto.setAmount(order.getAmount());
             orderUserResponseDto.setDate(order.getDate());
 
@@ -163,7 +162,7 @@ public class OrderService {
             }).toList();
 
             orderUserResponseDto.setOrder_items(orderItemsDtos);
-            orderItemsMap.put(order_id, orderItemsDtos);
+            orderItemsMap.put(order_id, orderUserResponseDto);
         }
 
         return orderItemsMap;
