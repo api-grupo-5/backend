@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import techno_express.backend.dto.OrderItemsUserResponseDto;
 import techno_express.backend.dto.OrderRequestDto;
-import techno_express.backend.dto.OrderResponseDto;
 import techno_express.backend.dto.OrderUserResponseDto;
 import techno_express.backend.entity.*;
 import techno_express.backend.exception.CartException;
@@ -20,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -135,8 +133,14 @@ public class OrderService {
             throw new UserException.NotFound();
         }
 
-        logger.info(request_id + " - obteniendo carrito...");
+        logger.info(request_id + " - validando si el usuario alguna orden...");
         List<Order> orders = orderRepository.findAllByCustomerId(user_id);
+
+        if (orders.isEmpty()) {
+            logger.error(request_id + " - el usuario no tiene ninguna orden");
+            throw new OrderException.NotFound();
+        }
+
         Map<Long, List<OrderItemsUserResponseDto>> orderItemsMap = new HashMap<>();
         for (Order order : orders) {
             Long order_id = order.getId();

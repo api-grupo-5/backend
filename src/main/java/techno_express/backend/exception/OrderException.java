@@ -8,8 +8,8 @@ public abstract class OrderException extends GenericException {
     }
 
     // Subclases internas
-    public static class NotExists extends OrderException {
-        public NotExists() {
+    public static class NotFound extends OrderException {
+        public NotFound() {
             super(HttpStatus.CONFLICT, "0201", "La orden no existe");
         }
     }
