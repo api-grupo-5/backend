@@ -92,6 +92,16 @@ public class CartService {
                     .filter(Objects::nonNull) // para evitar nulls si son nuevos
                     .toList();
 
+            List<Long> validProductIds = productRepository.findAllById(currentProductIds)
+                    .stream()
+                    .map(Product::getId)
+                    .toList();
+
+            if (validProductIds.size() != currentProductIds.size()) {
+                logger.error(request_id + " - hay articulos enviados que no existen en la base de datos");
+                throw new CartException.InvalidData();
+            }
+
             List<Long> itemsToRemove = existingCartItems.stream()
                     .filter(productId -> !currentProductIds.contains(productId))
                     .toList();
@@ -133,8 +143,8 @@ public class CartService {
     public void delete_cart(String request_id, CartDto cart_dto, Long cart_id) {
         cartValidator.validate_cart_dto(request_id, cart_dto, cart_id, false);
         logger.info(request_id + " - eliminando el carrito perteneciente al usuario...");
-        cartRepository.deleteCartId(cart_id);
         cartItemRepository.deleteByCartId(cart_id);
+        cartRepository.deleteCartId(cart_id);
         logger.info(request_id + " - carrito eliminado correctamente");
     }
 }
