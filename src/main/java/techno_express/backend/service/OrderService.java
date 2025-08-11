@@ -5,7 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import techno_express.backend.dto.OrderDto;
+import techno_express.backend.dto.OrderItemsUserResponseDto;
+import techno_express.backend.dto.OrderRequestDto;
+import techno_express.backend.dto.OrderResponseDto;
+import techno_express.backend.dto.OrderUserResponseDto;
 import techno_express.backend.entity.*;
 import techno_express.backend.exception.CartException;
 import techno_express.backend.exception.OrderException;
@@ -13,8 +16,11 @@ import techno_express.backend.exception.UserException;
 import techno_express.backend.repository.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -33,12 +39,12 @@ public class OrderService {
     private UserRepository userRepository;
 
     @Transactional
-    public void create_order(String request_id, OrderDto orderDto) {
+    public void create_order(String request_id, OrderRequestDto orderRequestDto) {
         logger.info(request_id + " - validando interfaces recibidas...");
-        Long user_id = orderDto.getUser_id();
-        double price = orderDto.getAmount();
-        Long cart_id = orderDto.getCart_id();
-        List<OrderItem> items = orderDto.getItems();
+        Long user_id = orderRequestDto.getUser_id();
+        double price = orderRequestDto.getAmount();
+        Long cart_id = orderRequestDto.getCart_id();
+        List<OrderItem> items = orderRequestDto.getItems();
 
         if(user_id < 1){
             logger.error(request_id + " - el usuario es invalido, enviaron el id '{}'", user_id);
@@ -67,7 +73,7 @@ public class OrderService {
         }
 
         logger.info(request_id + " - validando que exista el carrito enviado...");
-        Optional<Cart> cart = cartRepository.findById(orderDto.getCart_id());
+        Optional<Cart> cart = cartRepository.findById(orderRequestDto.getCart_id());
 
         if (cart.isEmpty()) {
             logger.error(request_id + " - el carrito no existe");
@@ -97,7 +103,7 @@ public class OrderService {
         orderRepository.save(order);
 
         logger.info(request_id + " - guardando articulos de la orden...");
-        for (OrderItem item : orderDto.getItems()) {
+        for (OrderItem item : orderRequestDto.getItems()) {
             OrderItem orderItem = new OrderItem();
             orderItem.setCategory(item.getCategory());
             orderItem.setDescription(item.getDescription());
@@ -110,5 +116,52 @@ public class OrderService {
             orderItem.setSeller(item.getSeller());
             orderItemRepository.save(orderItem);
         }
+    }
+
+    public Map<Long, List<OrderItemsUserResponseDto>> get_order_by_user_id(String request_id, OrderRequestDto orderRequestDto) {
+        Long user_id = orderRequestDto.getUser_id();
+
+        logger.info(request_id + " - validando interfaces recibidas...");
+        if(user_id < 1){
+            logger.error(request_id + " - el usuario es invalido, enviaron el id '{}'", user_id);
+            throw new UserException.InvalidData();
+        }
+
+        logger.info(request_id + " - validando que exista el usuario enviado...");
+        Optional<User> user = userRepository.findById(user_id);
+
+        if (user.isEmpty()) {
+            logger.error(request_id + " - el usuario no existe");
+            throw new UserException.NotFound();
+        }
+
+        logger.info(request_id + " - obteniendo carrito...");
+        List<Order> orders = orderRepository.findAllByCustomerId(user_id);
+        Map<Long, List<OrderItemsUserResponseDto>> orderItemsMap = new HashMap<>();
+        for (Order order : orders) {
+            Long order_id = order.getId();
+            OrderUserResponseDto orderUserResponseDto = new OrderUserResponseDto();
+            orderUserResponseDto.setOrder_id(order_id);
+            orderUserResponseDto.setAmount(order.getAmount());
+            orderUserResponseDto.setDate(order.getDate());
+
+            List<OrderItem> order_items = orderItemRepository.findAllByOrder_Id(order_id);
+            List<OrderItemsUserResponseDto> orderItemsDtos = order_items.stream().map(orderItem -> {
+                OrderItemsUserResponseDto itemDto = new OrderItemsUserResponseDto();
+                itemDto.setCategory(orderItem.getCategory());
+                itemDto.setDescription(orderItem.getDescription());
+                itemDto.setName(orderItem.getName());
+                itemDto.setImage(orderItem.getImage());
+                itemDto.setPrice(orderItem.getPrice());
+                itemDto.setQuantity(orderItem.getQuantity());
+                itemDto.setSeller_id(orderItem.getSeller().getId());
+                return itemDto;
+            }).toList();
+
+            orderUserResponseDto.setOrder_items(orderItemsDtos);
+            orderItemsMap.put(order_id, orderItemsDtos);
+        }
+
+        return orderItemsMap;
     }
 }

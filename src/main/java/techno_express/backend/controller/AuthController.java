@@ -12,8 +12,6 @@ import techno_express.backend.util.ResponseBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -24,45 +22,44 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestAttribute("request_id") String request_id,
-                                      @RequestBody UserRegisterDto userRegisterDto,
+                                      @RequestBody AuthRegisterRequestDto authRegisterRequestDto,
                                       HttpServletRequest request) {
 
         logger.info(request_id + " - inicio de register");
-        authService.register(request_id, userRegisterDto);
+        authService.register(request_id, authRegisterRequestDto);
         logger.info(request_id + " - fin de register");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestAttribute("request_id") String request_id,
-                                   @RequestBody AuthRequestDto authRequestDto,
+                                   @RequestBody AuthLoginRequestDto authLoginRequestDto,
                                    HttpServletRequest request) {
 
         logger.info(request_id + " - inicio de login");
-        HashMap<String, Object> result = authService.login(request_id, authRequestDto);
+        AuthLoginResponseDto result = authService.login(request_id, authLoginRequestDto);
         logger.info(request_id + " - fin de login");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request, result);
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<Object> forgotPassword(@RequestAttribute("request_id") String request_id,
-                                                 @RequestBody AuthForgotPasswordDto authForgotPasswordDto,
-                                                 HttpServletRequest request) {
-        logger.info(request_id + " - inicio de forgot-password");
-        authService.sendRecoveryToken(request_id, authForgotPasswordDto);
-        logger.info(request_id + " - fin de forgot-password");
+    public ResponseEntity<Object> forgot_password(@RequestAttribute("request_id") String request_id,
+                                                  @RequestBody AuthForgotPasswordRequestDto authForgotPasswordRequestDto,
+                                                  HttpServletRequest request) {
+        logger.info(request_id + " - inicio de forgot_password");
+        authService.forgot_password(request_id, authForgotPasswordRequestDto);
+        logger.info(request_id + " - fin de forgot_password");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<Object> resetPassword(
-            @RequestAttribute("request_id") String request_id,
-            @RequestBody AuthResetPasswordDto authResetPasswordDto,
-            HttpServletRequest request) {
+    public ResponseEntity<Object> reset_password(@RequestAttribute("request_id") String request_id,
+                                                 @RequestBody AuthResetPassowrdRequestDto authResetPassowrdRequestDto,
+                                                 HttpServletRequest request) {
 
-        logger.info(request_id + " - inicio de reset-password");
-        authService.resetPassword(request_id, authResetPasswordDto);
-        logger.info(request_id + " - fin de reset-password");
+        logger.info(request_id + " - inicio de reset_password");
+        authService.reset_password(request_id, authResetPassowrdRequestDto);
+        logger.info(request_id + " - fin de reset_password");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);
     }
 }

@@ -3,14 +3,13 @@ package techno_express.backend.dto;
 import lombok.Data;
 
 @Data
-public class UserRegisterDto {
-    private String username;
+public class AuthRegisterRequestDto {
+    private String email;
     private String password;
+    private String username;
     private String first_name;
     private String last_name;
-    private String email;
     private String phone;
     private String address;
     private int personal_id;
-    private String role;
 }

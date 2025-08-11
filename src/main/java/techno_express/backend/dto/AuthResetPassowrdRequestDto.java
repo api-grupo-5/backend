@@ -3,7 +3,7 @@ package techno_express.backend.dto;
 import lombok.Data;
 
 @Data
-public class AuthResetPasswordDto {
-    private String token;
+public class AuthResetPassowrdRequestDto {
     private String password;
+    private String token;
 }

@@ -3,6 +3,8 @@ package techno_express.backend.dto;
 import lombok.Data;
 
 @Data
-public class AuthResponseDto {
+public class AuthLoginResponseDto {
+    private Long user_id;
+    private Long role_id;
     private String token;
 }

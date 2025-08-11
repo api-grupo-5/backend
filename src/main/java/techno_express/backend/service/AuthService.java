@@ -15,7 +15,6 @@ import techno_express.backend.dto.*;
 import techno_express.backend.entity.*;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,12 +53,12 @@ public class AuthService {
     private PasswordEncoder encoder;
 
     @Transactional
-    public void register(String request_id, UserRegisterDto userRegisterDto) {
-        logger.info(request_id + " - registrando usuario '" + userRegisterDto.getUsername() + "'...");
+    public void register(String request_id, AuthRegisterRequestDto authRegisterRequestDto) {
+        logger.info(request_id + " - registrando usuario '" + authRegisterRequestDto.getUsername() + "'...");
         Optional<User> checking_user;
 
         try{
-            checking_user = userRepository.findByEmail(userRegisterDto.getUsername());
+            checking_user = userRepository.findByEmail(authRegisterRequestDto.getUsername());
         } catch (DataIntegrityViolationException e) {
             logger.error(request_id + " - error en los datos del usuario");
             throw new UserException.InvalidData();
@@ -73,36 +72,12 @@ public class AuthService {
             throw new UserException.AlreadyExists();
         }
 
-        // Get or create role
-        Role userRole = null;
-        try {
-            if (userRegisterDto.getRole() != null && !userRegisterDto.getRole().isEmpty()) {
-                logger.info(request_id + " - Buscando rol especificado: " + userRegisterDto.getRole());
-                userRole = roleRepository.findByName(userRegisterDto.getRole());
-                if (userRole == null) {
-                    logger.error(request_id + " - Rol no encontrado: " + userRegisterDto.getRole());
-                    throw new UserException.InvalidData();
-                }
-            } else {
-                logger.info(request_id + " - Usando rol por defecto: USER");
-                userRole = roleRepository.findByName("USER");
-                if (userRole == null) {
-                    // esto no deberia ir porque le agrega responsabilidades que no tendria que tener el registro, te lo dejo porque es práctico para testear pero en realidad no va
-                    logger.info(request_id + " - Creando rol por defecto: USER");
-                    userRole = new Role();
-                    userRole.setName("USER");
-                    userRole.setPermissions("READ");
-                    userRole = roleRepository.save(userRole);
-                }
-            }
-        } catch (Exception e) {
-            logger.error(request_id + " - Error al manejar roles: ", e);
-        }
         User user = new User();
-        user.setPassword(encoder.encode(userRegisterDto.getPassword()));
-        user.setEmail(userRegisterDto.getUsername());
+        user.setPassword(encoder.encode(authRegisterRequestDto.getPassword()));
+        user.setEmail(authRegisterRequestDto.getUsername());
         user.setRegistered_on(LocalDateTime.now());
-        user.setRole(userRole);
+        Optional<Role> role = roleRepository.findById(1L); // 1 = USER
+        user.setRole(role.get());
 
         logger.info(request_id + " - guardando usuario..." );
         try{
@@ -118,12 +93,12 @@ public class AuthService {
         logger.info(request_id + " - asignandole los datos de usuario correspondientes...");
         UserInformation userInformation = new UserInformation();
         userInformation.setUser(user);
-        userInformation.setEmail(userRegisterDto.getEmail());
-        userInformation.setFirst_name(userRegisterDto.getFirst_name());
-        userInformation.setLast_name(userRegisterDto.getLast_name());
-        userInformation.setPersonal_id(userRegisterDto.getPersonal_id());
-        userInformation.setPhone(userRegisterDto.getPhone());
-        userInformation.setAddress(userRegisterDto.getAddress());
+        userInformation.setEmail(authRegisterRequestDto.getEmail());
+        userInformation.setFirst_name(authRegisterRequestDto.getFirst_name());
+        userInformation.setLast_name(authRegisterRequestDto.getLast_name());
+        userInformation.setPersonal_id(authRegisterRequestDto.getPersonal_id());
+        userInformation.setPhone(authRegisterRequestDto.getPhone());
+        userInformation.setAddress(authRegisterRequestDto.getAddress());
 
         logger.info(request_id + " - guardando usuario en la tabla 'accounts_information'..." );
         try{
@@ -142,8 +117,8 @@ public class AuthService {
         cart.setOwner(userInformation);
     }
 
-    public HashMap<String, Object> login(String request_id, AuthRequestDto authRequestDto) {
-        String username = authRequestDto.getEmail();
+    public AuthLoginResponseDto login(String request_id, AuthLoginRequestDto authLoginRequestDto) {
+        String username = authLoginRequestDto.getEmail();
         Optional<User> optionalUser;
 
         try{
@@ -166,7 +141,7 @@ public class AuthService {
             authManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             username,
-                            authRequestDto.getPassword()
+                            authLoginRequestDto.getPassword()
                     )
             );
         } catch (BadCredentialsException e) {
@@ -182,23 +157,20 @@ public class AuthService {
         User user = optionalUser.get();
         String token = jwtService.generateToken(user);
 
-        logger.info(request_id + " - asignando token...");
-        AuthResponseDto response = new AuthResponseDto();
-        response.setToken(token);
-
         logger.info(request_id + " - actualizando ultimo inicio de sesion...");
         user.setLast_logged_in(LocalDateTime.now());
         userRepository.save(user);
 
-        HashMap<String, Object> result = new HashMap<>();
-        result.put("token", token);
-        result.put("user", user.getId());
-        result.put("role", user.getRole());
+        logger.info(request_id + " - devolviendo informacion...");
+        AuthLoginResponseDto result = new AuthLoginResponseDto();
+        result.setRole_id(user.getRole().getId());
+        result.setToken(token);
+        result.setUser_id(user.getId());
         return result;
     }
 
-    public void sendRecoveryToken(String request_id, AuthForgotPasswordDto authForgotPasswordDto) {
-        String email = authForgotPasswordDto.getEmail();
+    public void forgot_password(String request_id, AuthForgotPasswordRequestDto authForgotPasswordRequestDto) {
+        String email = authForgotPasswordRequestDto.getEmail();
         logger.info(request_id + " - validando que exista el usuario: {}...", email);
 
         Optional<User> optionalUser = userRepository.findByEmail(email);
@@ -228,7 +200,7 @@ public class AuthService {
             }
         }
 
-        if ((!token_doesnt_exist && create_new_token) || (create_new_token)) {
+        if (create_new_token) {
             logger.info(request_id + " - generando token...");
             String username = user.getEmail();
             token = UUID.randomUUID().toString();
@@ -249,21 +221,26 @@ public class AuthService {
         message.setFrom("noreply@technoexpress.com");
         message.setTo(email);
         message.setSubject("Recuperación de contraseña");
-        message.setText("Hola!\n\nPara restablecer tu contraseña, por favor ingresa el token:\n"
-                + token + "\n\nEste enlace expirará en 30 minutos.\n\nSaludos,\nEl equipo de TechnoExpress");
+        message.setText("Hola!\n\n" +
+                "Para restablecer tu contraseña, por favor ingresa el token:\n"
+                + token +
+                "\n\nEste enlace expirará en 30 minutos." +
+                "\n\nSaludos," +
+                "\nEl equipo de TechnoExpress"
+        );
 
         try {
-            logger.info(request_id + " - Enviando email...");
+            logger.info(request_id + " - enviando email...");
             mailSender.send(message);
-            logger.info(request_id + " - Email enviado correctamente.");
+            logger.info(request_id + " - email enviado correctamente.");
         } catch (Exception e) {
-            logger.error(request_id + " - Error al enviar el email: {}", e);
+            logger.error(request_id + " - error al enviar el email: {}", e.getMessage());
         }
     }
 
-    public void resetPassword(String request_id, AuthResetPasswordDto authResetPasswordDto) {
-        String token = authResetPasswordDto.getToken();
-        String newPassword = authResetPasswordDto.getPassword();
+    public void reset_password(String request_id, AuthResetPassowrdRequestDto authResetPassowrdRequestDto) {
+        String token = authResetPassowrdRequestDto.getToken();
+        String newPassword = authResetPassowrdRequestDto.getPassword();
 
         logger.info(request_id + " - token recibido: " + token);
         logger.info(request_id + " - validando que el token exista en la base de datos...");

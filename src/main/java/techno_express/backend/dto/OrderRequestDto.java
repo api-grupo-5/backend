@@ -5,7 +5,7 @@ import techno_express.backend.entity.OrderItem;
 import java.util.List;
 
 @Data
-public class OrderDto {
+public class OrderRequestDto {
     private List<OrderItem> items;
     private double amount;
     private Long user_id;
