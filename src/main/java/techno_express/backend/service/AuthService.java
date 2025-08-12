@@ -65,7 +65,6 @@ public class AuthService {
         logger.info(request_id + " - validando interfaces recibidas...");
         String username = authRegisterRequestDto.getEmail();
         String password = authRegisterRequestDto.getPassword();
-        String email = authRegisterRequestDto.getEmail();
         String phone = authRegisterRequestDto.getPhone();
         String first_name = authRegisterRequestDto.getFirst_name();
         String last_name = authRegisterRequestDto.getLast_name();
