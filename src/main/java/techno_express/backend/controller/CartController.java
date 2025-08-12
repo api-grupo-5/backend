@@ -24,7 +24,7 @@ public class CartController {
     @Autowired
     private CartService cartService;
 
-    @GetMapping("/{id}")
+    @PostMapping("/{id}")
     public ResponseEntity<?> load_cart(@RequestBody CartDto cartDto,
                                        @PathVariable Long id,
                                        HttpServletRequest request) {

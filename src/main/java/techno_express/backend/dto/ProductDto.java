@@ -29,8 +29,5 @@ public class ProductDto {
         this.image = product.getImage();
         this.category = product.getCategory();
         this.seller = product.getSeller() != null ? product.getSeller().getId() : null;
-
-        logger.info("ProductDto creado: id = {}, name = {}, description = {}, price = {}, stock = {}, image = {}, category = {}, seller = {}",
-                this.id, this.name, this.description, this.price, this.stock, this.image, this.category, this.seller);
     }
 }

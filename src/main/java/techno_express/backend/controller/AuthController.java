@@ -27,6 +27,7 @@ public class AuthController {
         String request_id = RequestContext.getRequestId();
 
         logger.info(request_id + " - inicio de register");
+        logger.info(authRegisterRequestDto.toString());
         authService.register(request_id, authRegisterRequestDto);
         logger.info(request_id + " - fin de register");
         return ResponseBuilder.buildResponse(HttpStatus.OK, "0200", "ok", request);

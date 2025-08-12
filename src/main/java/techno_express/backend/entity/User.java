@@ -22,4 +22,8 @@ public class User {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name="role_id")
     private Role role;
+
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name="cart_id")
+    private Cart cart;
 }

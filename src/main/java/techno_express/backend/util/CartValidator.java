@@ -32,7 +32,7 @@ public class CartValidator {
     public Cart validate_cart_dto(String request_id, CartDto dto, Long cart_id, boolean create) {
         Long user_id = dto.getUser_id();
 
-        logger.info(request_id + " - validando parámetros recibidos...");
+        logger.info(request_id + " - validando interfaces recibidas...");
         if (isBlank(String.valueOf(user_id))) {
             logger.error(request_id + " - no enviaron id de usuario");
             throw new CartException.InvalidData();
@@ -53,13 +53,12 @@ public class CartValidator {
 
         logger.info(request_id + " - validando que exista el carrito id: '{}'...", cart_id);
         Optional<Cart> cartOptional = cartRepository.findById(cart_id);
-
         if(!create){
             if(cartOptional.isEmpty()) {
                 logger.error(request_id + " - el carrito no existe");
                 throw new CartException.NotFound();
             } else{
-                logger.info(request_id + " - validando que el id del carrito coincida con el del usuario...");
+                logger.info(request_id + " - validando que el id del dueño del carrito coincida con el del usuario...");
                 if (!cartOptional.get().getOwner().getId().equals(dto.getUser_id())) {
                     logger.error(request_id + " - el carrito no pertenece al usuario");
                     throw new CartException.InvalidData();
@@ -78,7 +77,13 @@ public class CartValidator {
                 logger.info(request_id + " - guardando carrito...");
                 cartRepository.save(output_cart);
             } else{
-                logger.info(request_id + " - el usuario ya tiene carrito actualmente, se usara ese...");
+                logger.info(request_id + " - el usuario ya tiene carrito actualmente...");
+                logger.info(request_id + " - validando que el id del dueño del carrito coincida con el del usuario...");
+                if (!cartOptional.get().getOwner().getId().equals(dto.getUser_id())) {
+                    logger.error(request_id + " - el carrito no pertenece al usuario");
+                    throw new CartException.InvalidData();
+                }
+
                 output_cart = cart.get();
             }
 

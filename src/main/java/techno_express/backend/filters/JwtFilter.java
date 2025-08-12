@@ -36,6 +36,15 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
+        String request_id = request.getHeader("request_id");
+        if(request_id == null || request_id.isEmpty()) {
+            logger.error("Se envio un request sin request_id al emdpoint: " + path);
+            ResponseBuilder.writeResponse(response, HttpStatus.BAD_REQUEST, "0400", "No se procesara ninguna solicitud que no tenga request_id", request);
+            return;
+        }
+        RequestContext.setRequestId(request_id);
+        logger.info("-----------  inicio de request " + request_id + " ----------- ");
+
         // Allow OPTIONS requests (CORS preflight) to pass through
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             chain.doFilter(request, response);
@@ -57,35 +66,56 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        final String authHeader = request.getHeader("Authorization");
-        String username = null;
-        String jwt = null;
+        try{
+            final String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            jwt = authHeader.substring(7);
-            username = jwtService.extractUsername(jwt);
-        }
-
-        String request_id = request.getHeader("request_id");
-        if(request_id == null || request_id.isEmpty()) {
-            logger.error("Se envio un request sin request_id al emdpoint: " + path);
-            return;
-        }
-        RequestContext.setRequestId(request_id);
-
-        logger.info("-----------  inicio de request " + request_id + " ----------- ");
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsServiceImpl.loadUserByUsername(username);
-            if (jwtService.validateToken(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            } else {
-                ResponseBuilder.writeResponse(response, HttpStatus.UNAUTHORIZED, "0403", "Token inválido o expirado", request);
+            if(authHeader == null || authHeader.isEmpty()){
+                logger.error(request_id + " - no se envio ningun token");
+                ResponseBuilder.writeResponse(response, HttpStatus.BAD_REQUEST, "0400", "No se envio ningun token", request);
                 return;
             }
-        } else if (username == null) {
-            ResponseBuilder.writeResponse(response, HttpStatus.UNAUTHORIZED, "0401", "Token de autenticación invalido", request);
+
+            if(!authHeader.startsWith("Bearer ")) {
+                logger.error(request_id + " - el token esta mal estructurado");
+                ResponseBuilder.writeResponse(response, HttpStatus.BAD_REQUEST, "0400", "Token mal estructurado", request);
+                return;
+            }
+
+            String jwt = authHeader.substring(7);;
+            String username = jwtService.extractUsername(jwt);
+
+            if(username == null) {
+                logger.error(request_id + " - el token es invalido");
+                ResponseBuilder.writeResponse(response, HttpStatus.BAD_REQUEST, "0400", "El token es invalido", request);
+                return;
+            }
+
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsServiceImpl.loadUserByUsername(username);
+                if (jwtService.validateToken(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    logger.error(request_id + " - el token jwt es invalido o esta expirado");
+                    ResponseBuilder.writeResponse(response, HttpStatus.BAD_REQUEST, "0400", "Token inválido o expirado", request);
+                    return;
+                }
+            }
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            logger.error(request_id + " - el token jwt expiro");
+            ResponseBuilder.writeResponse(response, HttpStatus.UNAUTHORIZED, "0402", "Token expirado", request);
+            return;
+        } catch (io.jsonwebtoken.JwtException e) {
+            logger.error(request_id + " - el token jwt es invalido");
+            ResponseBuilder.writeResponse(response, HttpStatus.BAD_REQUEST, "0403", "Token JWT inválido", request);
+            return;
+        } catch (Exception e) {
+            logger.error(request_id + " - error procesando el token JWT", e);
+            ResponseBuilder.writeResponse(response, HttpStatus.INTERNAL_SERVER_ERROR, "0500", "Error interno", request);
             return;
         }
 

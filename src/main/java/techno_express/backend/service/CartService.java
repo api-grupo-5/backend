@@ -46,7 +46,7 @@ public class CartService {
                 Map<String, Object> itemData = new HashMap<>();
                 itemData.put("id", product.getId());
                 itemData.put("stock", product.getStock());
-                itemData.put("title", product.getName());
+                itemData.put("name", product.getName());
                 itemData.put("image", product.getImage());
                 itemData.put("price", product.getPrice());
                 itemData.put("quantity", item.getQuantity());

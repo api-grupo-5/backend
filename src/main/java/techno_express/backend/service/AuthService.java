@@ -15,6 +15,8 @@ import techno_express.backend.dto.*;
 import techno_express.backend.entity.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,89 +53,120 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder encoder;
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
 
     @Transactional
     public void register(String request_id, AuthRegisterRequestDto authRegisterRequestDto) {
-        logger.info(request_id + " - registrando usuario '" + authRegisterRequestDto.getUsername() + "'...");
-        Optional<User> checking_user;
+        logger.info(request_id + " - validando interfaces recibidas...");
+        String username = authRegisterRequestDto.getEmail();
+        String password = authRegisterRequestDto.getPassword();
+        String email = authRegisterRequestDto.getEmail();
+        String phone = authRegisterRequestDto.getPhone();
+        String first_name = authRegisterRequestDto.getFirst_name();
+        String last_name = authRegisterRequestDto.getLast_name();
+        String address = authRegisterRequestDto.getAddress();
+        int personal_id = authRegisterRequestDto.getPersonal_id();
 
-        try{
-            checking_user = userRepository.findByEmail(authRegisterRequestDto.getUsername());
-        } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - error en los datos del usuario");
+        if(isBlank(username)){
+            logger.info(request_id + " - el usuario enviado esta vacio");
             throw new UserException.InvalidData();
-        } catch (Exception e) {
-            logger.error(request_id + " - error desconocido durante el registro: " + e.getMessage());
-            throw e;
         }
 
+        if(isBlank(password)){
+            logger.info(request_id + " - la contraseña enviada esta vacia");
+            throw new UserException.InvalidData();
+        }
+
+        if(isBlank(phone)){
+            logger.info(request_id + " - el telefono enviado esta vacio");
+            throw new UserException.InvalidData();
+        }
+
+        if(isBlank(address)){
+            logger.info(request_id + " - la direccion enviada esta vacia");
+            throw new UserException.InvalidData();
+        }
+
+        if(isBlank(first_name)){
+            logger.info(request_id + " - el nombre enviado esta vacio");
+            throw new UserException.InvalidData();
+        }
+
+        if(isBlank(last_name)){
+            logger.info(request_id + " - el apellido enviado esta vacio");
+            throw new UserException.InvalidData();
+        }
+
+        if(personal_id < 1000000){
+            logger.info(request_id + " - el documento enviado ('{}') es invalido", personal_id);
+            throw new UserException.InvalidData();
+        }
+
+        logger.info(request_id + " - registrando usuario '" + username + "'...");
+        Optional<User> checking_user;
+
+        checking_user = userRepository.findByEmail(username);
         if(checking_user.isPresent()){
             logger.error(request_id + " - el usuario ya existe" );
             throw new UserException.AlreadyExists();
         }
 
         User user = new User();
-        user.setPassword(encoder.encode(authRegisterRequestDto.getPassword()));
-        user.setEmail(authRegisterRequestDto.getUsername());
+        user.setPassword(encoder.encode(password));
+        user.setEmail(username);
         user.setRegistered_on(LocalDateTime.now());
         Optional<Role> role = roleRepository.findById(1L); // 1 = USER
         user.setRole(role.get());
 
         logger.info(request_id + " - guardando usuario..." );
-        try{
-            userRepository.save(user);
-        } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - error en los datos del usuario: " + e);
-            throw new UserException.InvalidData();
-        } catch (Exception e) {
-            logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts': " + e);
-            throw e;
-        }
+        userRepository.save(user);
 
         logger.info(request_id + " - asignandole los datos de usuario correspondientes...");
         UserInformation userInformation = new UserInformation();
         userInformation.setUser(user);
-        userInformation.setEmail(authRegisterRequestDto.getEmail());
-        userInformation.setFirst_name(authRegisterRequestDto.getFirst_name());
-        userInformation.setLast_name(authRegisterRequestDto.getLast_name());
-        userInformation.setPersonal_id(authRegisterRequestDto.getPersonal_id());
-        userInformation.setPhone(authRegisterRequestDto.getPhone());
-        userInformation.setAddress(authRegisterRequestDto.getAddress());
+        userInformation.setEmail(username);
+        userInformation.setFirst_name(first_name);
+        userInformation.setLast_name(last_name);
+        userInformation.setPersonal_id(personal_id);
+        userInformation.setPhone(phone);
+        userInformation.setAddress(address);
 
         logger.info(request_id + " - guardando usuario en la tabla 'accounts_information'..." );
-        try{
-            userInformationRepository.save(userInformation);
-        } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - error en los datos del usuario: "+ e);
-            throw new UserException.InvalidData();
-        } catch (Exception e) {
-            logger.error(request_id + " - error desconocido al guardar el usuario en la tabla 'accounts_information': " + e);
-            throw e;
-        }
+        userInformationRepository.save(userInformation);
 
         logger.info(request_id + " - creandole un carrito vacio...");
         Cart cart = new Cart();
         cart.setCreated_on(LocalDateTime.now());
         cart.setOwner(userInformation);
+        cartRepository.save(cart);
     }
 
     public AuthLoginResponseDto login(String request_id, AuthLoginRequestDto authLoginRequestDto) {
+        logger.info(request_id + " - validando interfaces recibidas...");
         String username = authLoginRequestDto.getEmail();
+        String password = authLoginRequestDto.getPassword();
         Optional<User> optionalUser;
 
-        try{
-            logger.info(request_id + " - buscando usuario '" + username + "' en la base de datos...");
-            optionalUser = userRepository.findByEmail(username);
-            if(optionalUser.isEmpty()){
-                logger.error(request_id + " - el usuario no existe");
-                throw new UserException.NotFound();
-            }
-        } catch (DataIntegrityViolationException e) {
-            logger.error(request_id + " - los datos recibidos estan corrompidos: " + e);
+        if(isBlank(username)){
+            logger.info(request_id + " - el usuario enviado esta vacio");
             throw new UserException.InvalidData();
-        } catch (Exception e) {
-            logger.error(request_id + " - error desconocido durante la obtencion: " + e);
-            throw e;
+        }
+
+        if(isBlank(password)){
+            logger.info(request_id + " - la contraseña enviada esta vacia");
+            throw new UserException.InvalidData();
+        }
+
+        logger.info(request_id + " - buscando usuario '" + username + "' en la base de datos...");
+        optionalUser = userRepository.findByEmail(username);
+        if(optionalUser.isEmpty()){
+            logger.error(request_id + " - el usuario no existe");
+            throw new UserException.NotFound();
         }
 
         logger.info(request_id + " - validando credenciales del usuario con las recibidas...");
@@ -141,7 +174,7 @@ public class AuthService {
             authManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             username,
-                            authLoginRequestDto.getPassword()
+                            password
                     )
             );
         } catch (BadCredentialsException e) {
@@ -161,28 +194,59 @@ public class AuthService {
         user.setLast_logged_in(LocalDateTime.now());
         userRepository.save(user);
 
+        Optional<UserInformation> userInformationOptional = userInformationRepository.findById(user.getId());
+
+        if(userInformationOptional.isEmpty()){
+            logger.error(request_id + " - el usuario no tiene un registro asociado en la tabla users_information");
+            throw new UserException.InvalidData();
+        }
+        UserInformation userInformation = userInformationOptional.get();
+
+        logger.info(request_id + " - validando que el usuario tenga carrito...");
+        Optional<Cart> cartOptional = cartRepository.findByOwner(userInformation);
+        Long cart_id;
+        if(cartOptional.isEmpty()){
+            logger.info(request_id + " - el usuario no tiene carrito, se le creara uno");
+            Cart cart = new Cart();
+            cart.setCreated_on(LocalDateTime.now());
+            cart.setOwner(userInformation);
+            cartRepository.save(cart);
+
+            cart_id = cart.getId();
+        } else{
+            logger.info(request_id + " - el usuario tiene un carrito, devolviendo ese...");
+            cart_id = cartOptional.get().getId();
+        }
+
         logger.info(request_id + " - devolviendo informacion...");
         AuthLoginResponseDto result = new AuthLoginResponseDto();
         result.setRole_id(user.getRole().getId());
         result.setToken(token);
         result.setUser_id(user.getId());
+        result.setCart_id(cart_id);
         return result;
     }
 
     public void forgot_password(String request_id, AuthForgotPasswordRequestDto authForgotPasswordRequestDto) {
-        String email = authForgotPasswordRequestDto.getEmail();
-        logger.info(request_id + " - validando que exista el usuario: {}...", email);
+        logger.info(request_id + " - validando interfaces recibidas...");
+        String username = authForgotPasswordRequestDto.getEmail();
 
-        Optional<User> optionalUser = userRepository.findByEmail(email);
+        if(isBlank(username)){
+            logger.info(request_id + " - el usuario enviado esta vacio");
+            throw new UserException.InvalidData();
+        }
+
+        logger.info(request_id + " - validando que exista el usuario: {}...", username);
+        Optional<User> optionalUser = userRepository.findByEmail(username);
         if (optionalUser.isEmpty()) {
-            logger.error(request_id + " - Email no registrado");
+            logger.error(request_id + " - email no registrado");
             throw new UserException.NotFound();
         }
 
-
-        logger.info(request_id + " - validando si el usuario ya tiene un token generado");
+        logger.info(request_id + " - validando si el usuario ya tiene un token generado...");
         User user = optionalUser.get();
-        Optional<OtpToken> checking_email = otpTokenRepository.findByUsername(user.getEmail());
+        String user_email = user.getEmail();
+        Optional<OtpToken> checking_email = otpTokenRepository.findByUsername(user_email);
         boolean create_new_token = true;
         boolean token_doesnt_exist = checking_email.isEmpty();
         String token = "";
@@ -202,7 +266,6 @@ public class AuthService {
 
         if (create_new_token) {
             logger.info(request_id + " - generando token...");
-            String username = user.getEmail();
             token = UUID.randomUUID().toString();
             LocalDateTime expiration = LocalDateTime.now().plusMinutes(30);
 
@@ -210,7 +273,7 @@ public class AuthService {
             otp.setToken(token);
             otp.setExpiration(expiration);
             otp.setUser_id(user);
-            otp.setUsername(username);
+            otp.setUsername(user_email);
             otpTokenRepository.save(otp);
 
             logger.info("Token de recuperación generado: {}", token);
@@ -219,7 +282,7 @@ public class AuthService {
         logger.info(request_id + " - generando mail de recuperación...");
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("noreply@technoexpress.com");
-        message.setTo(email);
+        message.setTo(user_email);
         message.setSubject("Recuperación de contraseña");
         message.setText("Hola!\n\n" +
                 "Para restablecer tu contraseña, por favor ingresa el token:\n"
